@@ -1864,9 +1864,49 @@
    * composition の後処理(方法論の決定論的な適用):
    * 1 パネルの箇条書きが「ラベル: 説明」の並列列挙(4 件以上)なら、行名の箱 + 横長の説明の格子に組み替える。
    */
+  /**
+   * 「外部要因 30%: …。内部要因 50%: …。その他 20%: …。」のように、
+   * ラベル付きの文が 3 つ以上ひと塊で返ってきたときに箇条書きへ割る。
+   * 同じ入力でも LLM が items で返したり text で返したりするので、見た目を揃えるために正規化する。
+   */
+  function splitLabelledSentences(t) {
+    const raw = String(t || "").trim();
+    if (raw.length < 40 || /\n/.test(raw)) return null;
+    const parts = raw.split(/(?<=。)/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length < 3) return null;
+    const labelled = parts.filter((x) => /^[^：:、。]{2,16}\s*[：:]/.test(x));
+    if (labelled.length !== parts.length) return null;
+    return parts.map((x) => x.replace(/。$/, ""));
+  }
+  /** パネル・セルの本文が上の形なら箇条書きに割る(情報は落とさない) */
+  function splitBlobs(node) {
+    if (!node || typeof node !== "object") return false;
+    let hit = false;
+    const one = (arr) => {
+      if (!Array.isArray(arr) || arr.length !== 1 || typeof arr[0] !== "string") return null;
+      return splitLabelledSentences(arr[0]);
+    };
+    const split = one(node.items);
+    if (split) {
+      node.items = split;
+      hit = true;
+    } else if (!node.items && node.text) {
+      const s2 = splitLabelledSentences(node.text);
+      if (s2) {
+        node.items = s2;
+        delete node.text;
+        hit = true;
+      }
+    }
+    return hit;
+  }
+
   function refineComposition(out) {
     try {
       out = seriesToLine(out);
+      // 箇条書きで返るか 1 文の塊で返るかは LLM 次第なので、ラベル付きの塊は割って揃える
+      const targets = out && out.body ? (out.body.cols || [out.body]) : [];
+      if (targets.some(splitBlobs)) out.compositionRepairs = (out.compositionRepairs || []).concat(["labelled blob → list"]);
       const b0 = out && out.body;
       if (b0 && b0.type === "gantt" && Array.isArray(b0.periods) && Array.isArray(b0.tasks) && b0.tasks.length) {
         // 使われていない末尾の期間は落とす(LLM が 2 年分の月を並べても、最後の工程・節目までで切る)
