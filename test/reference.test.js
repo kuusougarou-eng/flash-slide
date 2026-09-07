@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 
 const src = fs.readFileSync(path.join(__dirname, "..", "public", "render.js"), "utf8");
+const SlideLayout = require("../public/layout");
 const geoKey = (s) => [s.type, Math.round(s.left), Math.round(s.top), Math.round(s.width), Math.round(s.height)].join("|");
 const slice = src.slice(src.indexOf("function analyzeReference"), src.indexOf("root.SlideRender"));
 // 間接 eval でグローバルに関数宣言を展開(strict のファイルスコープを避ける)。geoKey は先に注入。
@@ -136,6 +137,44 @@ let checks = 0;
   assert.ok(r.profile.body.y > 139 && r.profile.body.h > 300, "D: body below lead");
   const cover = analyzeReference(D.slice(0, 2).concat(D.slice(5)), 960, 540);
   assert.strictEqual(cover.profile, null, "D: Title + Subtitle only → cover");
+  checks += 5;
+}
+
+// --- E: 全面ダーク背景。地を消してしまうとテンプレートが壊れ、白地に白文字で読めなくなる ---
+{
+  const E = [
+    { id: "bg", type: "Rectangle", left: 0, top: 0, width: 960, height: 540, hasText: false, fillType: "Solid", fillColor: "#14161A" },
+    { id: "t", type: "TextBox", left: 48, top: 40, width: 864, height: 44, hasText: true, text: "既存スライド: 需要構造の転換", fontSize: 28, bold: true, color: "#F5F5F5" },
+    { id: "l", type: "TextBox", left: 48, top: 92, width: 864, height: 28, hasText: true, text: "主要顧客の購買行動が四半期で入れ替わっている", fontSize: 14, color: "#B0B6C0" },
+    { id: "b", type: "TextBox", left: 48, top: 150, width: 864, height: 320, hasText: true, text: "本文ダミー\n・需要の分散", fontSize: 16, color: "#F5F5F5" },
+    { id: "src", type: "TextBox", left: 48, top: 500, width: 400, height: 20, hasText: true, text: "出典: 社内データ", fontSize: 9 },
+  ];
+  const r = analyzeReference(E, 960, 540);
+  assert.ok(r.profile, "E: 全面ダークでも参照として使える");
+  assert.strictEqual(r.profile.darkBackground, true, "E: 暗い地として検出する");
+  assert.ok(r.plan.keepKeys[geoKey(E[0])], "E: 全面の地を保持する");
+  const lay = SlideLayout.layout(SlideLayout.normalizeSpec({ title: "t", body: { type: "cell", items: ["a", "b"] } }), { width: 960, height: 540, profile: r.profile, palette: { accent: "none" } });
+  const body = lay.prims.filter((x) => x.body && x.text);
+  assert.ok(body.length && body.every((x) => x.color !== "#1A1A1A"), "E: 暗い地では本文を黒で描かない");
+  checks += 4;
+}
+
+// --- F: 左サイドバー。帯を消すとテンプレートの章ナビが失われ、本文の位置もずれる ---
+{
+  const F = [
+    { id: "bar", type: "Rectangle", left: 0, top: 0, width: 190, height: 540, hasText: false, fillType: "Solid", fillColor: "#2B3A55" },
+    { id: "nav", type: "TextBox", left: 16, top: 40, width: 158, height: 200, hasText: true, text: "第 2 章\n市場環境", fontSize: 14, bold: true, color: "#FFFFFF" },
+    { id: "t", type: "TextBox", left: 220, top: 44, width: 700, height: 40, hasText: true, text: "既存スライド: 価格競争の実態", fontSize: 24, bold: true },
+    { id: "l", type: "TextBox", left: 220, top: 92, width: 700, height: 26, hasText: true, text: "値引き原資が粗利を圧迫している", fontSize: 13, color: "#666666" },
+    { id: "b", type: "TextBox", left: 220, top: 140, width: 700, height: 330, hasText: true, text: "本文ダミー\n・平均値引き率", fontSize: 14 },
+    { id: "src", type: "TextBox", left: 220, top: 500, width: 400, height: 20, hasText: true, text: "出典: 販売管理システム", fontSize: 9 },
+  ];
+  const r = analyzeReference(F, 960, 540);
+  assert.ok(r.profile, "F: サイドバー付きでも参照として使える");
+  assert.strictEqual(r.profile.darkBackground, false, "F: 帯があるだけでは暗い地としない");
+  assert.ok(r.plan.keepKeys[geoKey(F[0])], "F: 縦帯を保持する");
+  assert.ok(r.plan.keepKeys[geoKey(F[1])], "F: 帯の上の章ラベルも保持する");
+  assert.ok(r.profile.body.x >= 210 && r.profile.body.w <= 720, "F: 本文領域は帯の右から始まる");
   checks += 5;
 }
 

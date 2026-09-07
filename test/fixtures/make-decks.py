@@ -104,5 +104,41 @@ def deck_c():
         add_text(s, 30, 500, 300, 20, f"{i+1} / 2", 9, color=RGBColor(0x88, 0x88, 0x88))
     prs.save(os.path.join(OUT, "deck-C-darkband.pptx"))
 
-deck_a(); deck_b(); deck_c()
+# ---------- D: 全面ダーク背景(白文字) ----------
+def deck_d():
+    prs = Presentation()
+    prs.slide_width = pt(960)
+    prs.slide_height = pt(540)
+    ink = RGBColor(0x14, 0x16, 0x1A)
+    paper = RGBColor(0xF5, 0xF5, 0xF5)
+    accent = RGBColor(0x4C, 0x9A, 0xFF)
+    for i in range(2):
+        s = prs.slides.add_slide(prs.slide_layouts[6])  # 白紙
+        add_rect(s, 0, 0, 960, 540, ink)  # 全面の地
+        add_text(s, 48, 40, 864, 44, f"既存スライド {i+1}: 需要構造の転換", 28, bold=True, color=paper)
+        add_text(s, 48, 92, 864, 28, "主要顧客の購買行動が四半期で入れ替わっている", 14, color=RGBColor(0xB0, 0xB6, 0xC0))
+        add_text(s, 48, 150, 864, 320, "本文ダミー(箇条書き)\n・需要の分散\n・単価の下落", 16, color=paper)
+        add_rect(s, 48, 132, 120, 3, accent)
+        add_text(s, 48, 500, 400, 20, "出典: 社内データ", 9, color=RGBColor(0x80, 0x86, 0x90))
+        add_text(s, 880, 500, 40, 20, str(i + 1), 9, color=RGBColor(0x80, 0x86, 0x90), align=PP_ALIGN.RIGHT)
+    prs.save(os.path.join(OUT, "deck-D-darkbg.pptx"))
+
+# ---------- E: 左サイドバー(本文領域が全幅でない) ----------
+def deck_e():
+    prs = Presentation()
+    prs.slide_width = pt(960)
+    prs.slide_height = pt(540)
+    bar = RGBColor(0x2B, 0x3A, 0x55)
+    for i in range(2):
+        s = prs.slides.add_slide(prs.slide_layouts[6])
+        add_rect(s, 0, 0, 190, 540, bar)  # 左の帯(章ナビ)
+        add_text(s, 16, 40, 158, 200, "第 2 章\n市場環境", 14, bold=True, color=RGBColor(0xFF, 0xFF, 0xFF))
+        add_text(s, 220, 44, 700, 40, f"既存スライド {i+1}: 価格競争の実態", 24, bold=True)
+        add_text(s, 220, 92, 700, 26, "値引き原資が粗利を圧迫している", 13, color=RGBColor(0x66, 0x66, 0x66))
+        add_text(s, 220, 140, 700, 330, "本文ダミー(箇条書き)\n・平均値引き率\n・競合の追随", 14)
+        add_text(s, 220, 500, 400, 20, "出典: 販売管理システム", 9, color=RGBColor(0x88, 0x88, 0x88))
+        add_text(s, 890, 500, 40, 20, str(i + 1), 9, color=RGBColor(0x88, 0x88, 0x88), align=PP_ALIGN.RIGHT)
+    prs.save(os.path.join(OUT, "deck-E-sidebar.pptx"))
+
+deck_a(); deck_b(); deck_c(); deck_d(); deck_e()
 print("decks written to", OUT)

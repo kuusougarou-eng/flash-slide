@@ -243,6 +243,11 @@
     const marginL = Math.min(title.left, lead ? lead.left : title.left) - 4;
     const marginR = Math.max(title.left + title.width, lead ? lead.left + lead.width : 0) + 4;
     const keep = new Set();
+    // 全面の地(塗りつぶしでスライドのほぼ全面を覆う無地の図形)。これを消すとテンプレートの地が失われる
+    const background = inSlide.find((s) => !s.hasText && s.fillType === "Solid" && s.left <= 4 && s.top <= 4 && s.width >= W * 0.95 && s.height >= H * 0.95);
+    // 縦帯(章ナビ・サイドバー): 左右の端に接する、高さがほぼ全面の細い帯。中の文字ごと保持する
+    const sideBands = inSlide.filter((s) => s.height >= H * 0.8 && s.width <= W * 0.32 && (s.left <= 4 || s.left + s.width >= W - 4));
+    const inSideBand = (s) => sideBands.some((b) => b !== s && s.left >= b.left - 2 && s.left + s.width <= b.left + b.width + 2);
     inSlide.forEach((s) => {
       const area = (s.width * s.height) / (W * H);
       const inHeader = s.top + s.height <= headerBottom;
@@ -258,6 +263,9 @@
           s === footnote ||
           (s.fillType === "Solid" && (s.text || "").length <= 10)); // ロゴ・チップ風の小さな塗り図形
       const decor =
+        s === background ||
+        sideBands.includes(s) ||
+        inSideBand(s) || // 帯の上に載っている章番号・ラベル
         footerKeep ||
         (zone && (s.type === "Image" || s.type === "Graphic") && area < 0.12) ||
         (zone && s.type === "Line") ||
@@ -305,7 +313,18 @@
     const bodyText = texts.find((s) => s !== title && s !== lead && s.fontName && !/^\+/.test(s.fontName));
     const fontName = (bodyText && bodyText.fontName) || (title.fontName && !/^\+/.test(title.fontName) ? title.fontName : null);
 
+    // 地が暗ければ本文の文字色を反転させる(白地前提で黒文字を描くと読めなくなる)
+    const lum = (hex) => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+      if (!m) return 1;
+      const n = parseInt(m[1], 16);
+      return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+    };
+    const bgColor = background ? background.fillColor : null;
+    const darkBackground = !!bgColor && lum(bgColor) < 0.45;
     const profile = {
+      background: bgColor,
+      darkBackground,
       title: { x: title.left, y: title.top, w: title.width, h: title.height, fontSize: title.layoutFontSize || title.fontSize || undefined, bold: title.bold !== false, color: title.color, align: alignOf(title.align), reuse: true },
       lead: lead ? { x: lead.left, y: lead.top, w: lead.width, h: lead.height, fontSize: lead.layoutFontSize || lead.fontSize || undefined, color: lead.color, align: alignOf(lead.align), reuse: true } : null,
       body,
@@ -320,7 +339,7 @@
     inSlide.forEach((s) => {
       if (keep.has(s.id)) plan.keepKeys[geoKey(s)] = true;
     });
-    const note = `参照: タイトル ${Math.round(title.fontSize || 0)}pt${lead ? " / リード有" : " / リード無"}${footnote ? " / 出典行有" : ""} / 本文 ${Math.round(body.w)}×${Math.round(body.h)}pt${bodyFontSize ? " / 本文 " + bodyFontSize + "pt" : ""}${headFontSize ? " / 見出し " + headFontSize + "pt" : ""} / 保持 ${keep.size} 形${fontName ? " / " + fontName : ""}${accent ? " / 色 " + accent : ""}`;
+    const note = `参照: ${darkBackground ? "暗い地 / " : ""}タイトル ${Math.round(title.fontSize || 0)}pt${lead ? " / リード有" : " / リード無"}${footnote ? " / 出典行有" : ""} / 本文 ${Math.round(body.w)}×${Math.round(body.h)}pt${bodyFontSize ? " / 本文 " + bodyFontSize + "pt" : ""}${headFontSize ? " / 見出し " + headFontSize + "pt" : ""} / 保持 ${keep.size} 形${fontName ? " / " + fontName : ""}${accent ? " / 色 " + accent : ""}`;
     return { profile, plan, note };
   }
   /** paragraphFormat.horizontalAlignment は段落が混在すると文字列以外(null / オブジェクト)になりうる */

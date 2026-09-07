@@ -241,6 +241,21 @@
     if (mono) P.accent = P.fillDark;
     else if (prof && prof.accent && !(options.palette && options.palette.accent)) P.accent = prof.accent;
     P.accentTint = mono ? P.fillLight : tint(P.accent, 0.9);
+    // 参照スライドの地が暗いときは、文字・罫・塗りを反転させる(白地前提のトークンのままだと読めない)
+    if (prof && prof.darkBackground) {
+      P.text = "#FFFFFF";
+      P.textMuted = "#B8BEC8";
+      P.textOnDark = "#14161A";
+      P.line = "#6B7280";
+      P.lineLight = "#4B5563";
+      P.fillLight = "#2A2F37";
+      P.fillMid = "#3C424C";
+      P.fillDark = "#E8EAED";
+      if (mono) {
+        P.accent = P.fillDark;
+        P.accentTint = P.fillLight;
+      }
+    }
     P.mono = mono;
     applyFontProfile(prof);
     if (spec.compositionVersion) {
