@@ -8,3 +8,4 @@ icons-cache/
 *.mp4
 test/fixtures/*.addin.pptx
 public/assets/icon-*.png
+docs/golden/*.pptx
