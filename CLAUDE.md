@@ -1,0 +1,187 @@
+# CLAUDE.md — Flash Slide(PPTADDINCLAUDE)プロジェクト固有ルール
+
+グローバル `~/.claude/CLAUDE.md` に加え、本プロジェクトでは以下に従う。矛盾時は本ファイルが優先。
+
+## このアプリの目的(ブレさせない)
+- **1 プロンプト → 1〜2 枚**のコンサル風スライドを**超高速**で生成する Office.js アドイン。
+- **推論は 1 回**(重い多段推論をしない)。レイアウト計算は `public/layout.js` の純関数で行う。
+- デザインは**モノトーン + 強調色 1 色**、シンプル。華美・装飾過多にしない。
+- レイアウトは**固定パターンにしない**。内容に応じて LLM がブロック(グリッド)を構成し、
+  こちら側は弱い制約(プロンプト)とレイアウトエンジンで質を担保する。
+
+## コマンド(コピペ可)
+- 起動: `npm start`(https://localhost:3455)
+- サイドロード: `npm run sideload` / 解除: `npm run unload`
+- テスト: `npm test`(layout + reference + integration、Office.js 不要)
+- マニフェスト検証: `npm run validate`
+- アイコン生成: `npm run icons`
+- テストデッキ生成: `python test/fixtures/make-decks.py`
+
+## ポート
+- **3455 を使う**。3000/3443 は別プロジェクト(PPTADDIN_CODEX の Vite 等)が使うため競合する。
+- `manifest.xml` と `.env` の PORT を必ず一致させる。変更したら再サイドロード。
+
+## .env(秘密情報の SSoT)
+- パス: リポジトリ直下の `.env`(`.env.example` をコピー)。変数名は `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` / `PORT`。
+- 実際の LLM は社内 LiteLLM ゲートウェイ(`LLM_BASE_URL` で指定)。GET は WAF で拒否されうる → 生成は POST。
+- 実測(composition 文法、13 ケース × 2): 軽量モデル 2.3s(構造一致 26/26)/ 中位 5.4s(24/26)/ 上位 6.6s(24/26)。
+  文法を絞れば軽量モデルで十分で、品質はエンジン側で詰める(README「モデル選定」節)。既定は `.env` の `LLM_MODEL`。
+
+## Office.js の要点(実機で確認済み)
+- タスクペインは**読み込まれた文書だけ**を操作する。実運用は「対象デッキを開く→リボンから起動」。
+- スライドサイズは `presentation.pageSetup.slideWidth/Height`(API 1.10)。取れなければ 960×540。
+- 表(`table`)は**セルを組み合わせた格子**として図形で描く(コンサル資料の慣習)。PPT ネイティブ表は `ntable`(figure 扱い、密な数表のみ)。
+  行見出しの縦矢羽(`headShape:"chevron"`)は 90° 回転した homePlate/chevron 図形を重ね、文字は別テキストボックス(文字を回転させない)。
+- 新規スライドは、参照可能なら**選択スライドを複製**(`exportAsBase64`+`insertSlidesFromBase64`)して
+  タイトル/リード/出典の文字だけ差し替え、フッター等は保持。参照不可なら白紙レイアウトに既定描画。
+- **アイコンはフォントグリフ禁止**(PUA が CJK ランで豆腐化する)。Tabler Icons を `/api/icons` で PNG 化し、
+  `Office.context.document.setSelectedDataAsync(image)` で選択中スライドに貼る(`render.js insertImages`)。
+- **`table` ノードは `.rows` を持つ**。コンテナ判定は `!node.type` を必須にする(`isContainer`)。
+- 参照解析は自前シェイプ(名前 `FS_*`)を除外する(直前の生成物を参照にしても装飾扱いしない)。タイトル/サブタイトルの基準サイズはレイアウトのプレースホルダ既定値を読む(縮小の連鎖を防ぐ)。
+- `paragraphFormat.horizontalAlignment` は文字列以外が返ることがある(`alignOf` で防御)。Subtitle プレースホルダはリード文として使うテンプレが多い(表紙判定は CenterTitle / 下寄せ / 本文なし で行う)。
+- 表は `addTable` に `values` + `columns/rows` + `specificCellProperties`(fill は色があるときだけ、borders は 4 辺指定)。
+  `fill:{transparency:1}` や `margins` を渡すと InvalidArgument になる。
+- **デザイン規律の正典**は consulting-pptx-skill の slide-rules(README に要約)。変更時は `test/layout.test.js` の
+  品質ゲート(サンプルは 960×540 で縮小なし・塗り+枠線なし・角丸なし・表ヘッダ塗りなし・最終行罫なし)を通す。
+- `fill.foregroundColor` は `fill.type==="Solid"` のときだけ読む(それ以外で読むと sync 全体が例外で落ちる)。
+
+## テスト/検証の規律(このプロジェクト)
+- 「できた」の前に**実機 PowerPoint で描画を目視**する。確立された手順:
+  1. `debug/approach-test.pptx`(`python scripts/inject-addin.py <元.pptx> <out.pptx>` で作成)を `powershell.exe -File scripts/ppt-open.ps1` で開く
+  2. `pwsh scripts/uia-click.ps1 "approach-test" "ホーム" "スライド生成"` でペインを開く(前面化しない。ユーザーが別モニタで作業中でも邪魔しない)
+  3. `node scripts/run-triggers.js reload reanalyze <mock…>` / `--file test/cases.json --model <m>` で連続生成 → `debug/*.png`(PowerPoint 自身の描画)を目視
+  4. `powershell.exe -File scripts/ppt-find-text.ps1 "approach-test" "<文字列>"` で実シェイプのサイズ・行数を確認。
+     `DEBUG_SNAPSHOT` の PNG は挿入直後の書き出しで折り返し 2 行目が写らないことがある → 最終確認は `scripts/ppt-export-slide.ps1`(COM の `Slide.Export`)で撮る
+- **ユーザーの文書(未保存のものを含む)に生成しない。** 旧バージョンのペインが別文書に残っていることがある(トリガは `?v=4` 付きにだけ渡す)。誤って入れたスライドは `scripts/ppt-delete-slide.ps1`(FS_* だけのスライドしか消さない)で消す。
+- **デスクトップのクリック操作(`ui.ps1 click`)は前面ウィンドウを確認してから。** サブモニタは負座標。UI Automation(`uia-click.ps1`)を優先する。
+- レイアウト崩れ検証は `test/layout.test.js`(全プリミティブがスライド内・本文 18pt 以上・太字レンジ整合)。
+- 参照解析は `test/reference.test.js`(A/B/C デザイン + 表紙/空 の分岐)。
+- サーバ↔LLM は `test/integration.test.js`(ダミー LLM、/v1 フォールバック、json_object、sections)。
+
+## 開発検証ツール(本番無効)
+- `DEV_TRIGGER=1`: タスクペインが `GET /api/debug/trigger` をポーリング。`POST /api/debug/trigger {hint,mock}` で
+  任意のアクティブ文書に対して生成を発火できる(clone 検証用)。`hint:"makeref"` は参照用スライドを Office.js で作る。
+  `hint:"setprompt"` は入力欄の中身だけ差し替える(空文字で初回状態)、`hint:"zen"` は入力拡大モードのトグル。
+  どちらも **タスクペイン UI の実機確認用**(前面化せずに `pwsh scripts/ui.ps1 shotwin "approach-test" debug/ui.png` で撮る)。
+  日本語を含むトリガは cp932 で壊れるので **UTF-8 の JSON ファイルに書いて `curl --data-binary @file`** で送る。
+- `DEBUG_SNAPSHOT=1`: 生成スライドの PNG を `debug/` に保存(`POST /api/debug/snapshot`)。
+- `AUTO_RUN="flow,report,..."`: タスクペイン起動時にモック生成を連続実行。
+- `office-addin-debugging start manifest.xml desktop --document <pptx>` は指定デッキ内容でランチャーを作るが、
+  webextension を埋め込まずタスクペインが自動オープンしないことがある。clone 検証は上記 DEV_TRIGGER + makeref が確実。
+
+## デザイン方針(ユーザーフィードバック由来・2026-09-06 追記分)
+- **既定はグレースケール**(タスクペインの色スウォッチ既定「なし」)。色は選ばれたときだけ。強調は太字・濃い地で表す。
+- **入力の情報を落とさない。** 目安を超える量は 2 枚目(詳細・補足)に流す。詳細(格子セル・第 2 階層)は 12pt まで小さくしてよい(基本は 18pt)。
+- **アイコン・ピクトグラムは使わない**(プロンプトから除去。エンジンは余白が余るときだけ描く)。
+- **矢羽はホームベース型**。幅 100pt 未満・高さ 28pt 未満(縦は行見出し幅 110pt 未満・行高 30pt 未満)では矢の形にせず長方形。
+- **見出しの罫は本物の線分**(`addLine`)。見出しテキストは罫と同じ幅のテキストシェイプに中央揃えで載せる。2 パネルでは両方に必ず罫を引く。格子の列見出し罫は細い灰(パネル見出しの太罫と二重に見せない)。
+- **グリッド整合**: 兄弟列の見出し行の高さ・罫の y を揃える(段数が違っても)。格子の行見出し幅は最長の見出し文字から決め(15〜30%)、列幅は内容量に比例させる(列見出しが 1 行で入る幅は必ず確保)。
+- **黒下線(パネル見出し)はパネルの最上位だけ**。塊の中で入れ子にしない(入れ子の見出しは罫なしの太字)。パネル内の格子は列見出しの罫を引かない(階層が二重に見える)。
+- **横に並べるなら全パネルに見出しを置く**(図・箇条書き・格子のいずれでも)。罫が同じ高さに並ぶ。
+- **情報量に応じて配置を変える**: 列が文章に対して狭い(1 行 22 字未満)なら横に割らず縦積みにして横長に読ませる。
+- **揃えの平仄**: 本文は常に左、格子の数値列は右(列見出しも中身に合わせる)、パネル見出しは罫幅で中央、KPI は中央。単独セルの数値を右寄せにしない。
+- **参考デッキ由来の部品**(2026-09-06 夜): `cell.caption`(小ラベル→太字の一文)、`cell.num`(01/02/03 の番号カード)、`cell.style:"takeaway"`(最下段の示唆帯・左に濃いバー)、`cell.shape:"step"`(箱フロー。cols に並べると箱の間に小さな三角)、`kpi.fill:"dark"`、`table.headFill:"dark"` / `numbered`、`spec.kicker`(既定レイアウトのタイトル上の小さな前置き)。
+- **専用レンダラ**: `gantt`(periods/tasks/milestones/groups/today。割付は決定論。終了は開始以降で解決)、`org`(root→children のツリー。箱 + コネクタ線、根と highlight は濃い塗り)。スケジュールと体制は必ずこれを使わせる(プロンプト)。
+- **塗りのある箱は中身の高さに合わせる(hug)**。列いっぱいに黒い箱を伸ばさない。兄弟の番号カードは最大の自然高さに揃える。
+- **既定タイポ**(テンプレ無し): 本文 14 / 見出し 16 / リード 14(1 行に収まるサイズを優先)/ 注記 9 / 行間 1.35。テンプレがあればその本文サイズ基準。
+- **LLM のゆらぎ吸収**: `{"type":"cols",…}` の容器、`{"type":"figure","line":{…}}`、`{"table":{…}}` 包み、JSON 断片、スキーマ語だけの文字列、データ無しの figure、空セル。`DEBUG_SNAPSHOT=1` で `debug/specs/` に生応答と正規化後を保存(崩れの再現用)。
+- **図(figure)はネイティブ図形で描く**。Office.js の PowerPoint API にグラフ挿入は無い(実機プローブ + 公式 BETA リファレンスで確認: `addGeometricShape` / `addGroup` / `addLine` / `addPicture` / `addTable` / `addTextBox` のみ)。
+- **テンプレ準拠(文字サイズ)**: 参照スライドの本文サイズ(最頻値)・見出しサイズ・出典サイズを解析し、`layout()` が文字階層を組み替える
+  (本文=テンプレ値、見出し=テンプレの太字最頻値、floor=本文×0.72、large=×1.25、格子=×0.85、KPI=×2.6)。テンプレが無いときだけ既定の 18pt 基準。
+
+## タスクペイン UI(2026-09-06 全面改定)
+- 画面は **入力欄が主役**。`main` は flex 列、`.compose` が `flex:1` でペインの高さいっぱいまで伸びる。高さを固定しない。
+- **入力欄は「開いている PPT への操作指示」ではなく「伝えたい中身」を置く場所**。これを言外に伝える 4 点セットを壊さない:
+  ① ラベル「内容」+ 補足「メモ・議事録・AI の回答をそのまま」 ② プレースホルダは指示文ではなく**メモそのもの**の例
+  ③ 指示は別枠(`<details>`「仕上げの希望」)に隔離 ④ 実行バーに**出力先**(「スライド N の次に追加・デザイン継承」)を常時表示。
+- 文字数カウンタは**枚数の目安**として返す(700 字未満=1 枚 / 1800 字未満=1〜2 枚 / それ以上=章立ての確認)。期待値調整の要。
+- 設定(色・レイアウト・モデル・モック)は畳んだ `details` に収め、summary に現在値を出す(開かずに分かる)。
+- `⤢` で入力拡大(`body.zen`)、Esc で復帰。入力があるあいだは `body.typing` でヒーローを畳んで入力面積を稼ぐ。
+- `setAccent` の比較は**大文字に揃える**(`auto`/`none` は小文字保持のため、揃えないとカスタムのスウォッチが選択表示される)。
+
+## 生成フロー(2026-09-06 改定: 4 案並列 → 1 案即挿入 → 他の案をカードで差し替え)
+- **生成 = `/api/generate` を 4 本並列**(`VARIANTS`)。最初に返った案を即挿入し、4 案を「仕上げの希望」の下の
+  **「生成資料」セクションに 2×2 の格子**(ペイン幅 560px 以上で 1×4)でサムネ一覧にする。押すと**差し替え**
+  (旧スライドを消して同じ場所に挿入)。「仕上げの希望」を言語で書かせない設計。
+- **UI の基準は PPTADDIN_CODEX(Desktop/PPTADDIN_CODEX/src/style.css)の抑制されたデザイン**: バッジ・ピル・
+  セグメントコントロール・所要時間などのメタ表示は置かない。主ボタンは黒(#222)、角丸は小さく、セクションは細い罫、
+  設定は素の `<select>`(枚数: 自動(1〜2枚)/1枚/2枚)、補足は 10px の灰文字 1 行。挿入済みの案は太枠 + 「挿入済み」の小文字だけ。
+- 格子の並び順は案の番号で固定する(差し替えてもカードが動かず、印だけ移る)。横スクロールにしない(押しづらい・見づらい)。
+- **ペイン全体のトークンも Codex 版に揃えてある**(`taskpane.css` の `:root`): 地 #fafafa / 文字 #222 / 補足 #666・#737373 /
+  罫 #e3e3e3 / 入力枠 #cecece 角丸 5px 14px 行間 1.8 / 主ボタン #222 / エラーは赤い一行(箱にしない) / Ctrl+Enter の飾りピルは出さない(title 属性のみ)。
+  結果まわりだけ直して「UI が新しくなっていない」と言われた経緯があるので、見た目の変更は**生成前の画面から**通すこと。
+- 実測根拠(`debug/parallel-check.json`): 4 並列でも壁時計は 1 案 +0.6〜2s、構成は 4/4 別物、title は同じ主旨。
+  temperature は 0.2 のまま(上げると title と枚数が揺れる。`debug/temp-variance.json`)。
+- **同じ入力での再生成は差し替え、入力が変わっていれば追加**(`goLabel()`: 「再生成」/「スライド生成」)。枚数セグメントの変更も差し替え。
+- **出力先はバッチ開始時の `prepared` スナップショットで固定**(`batch.prepared`)。生成後は選択が自分の生成スライドへ移るので、
+  現在の `prepared` を差し替えに使うと「消す対象」を参照に複製しようとして GeneralException で落ちる(実機で再現済み)。
+- **先に挿入してから旧スライドを削除**(`renderOpts(pre, ignoreIds)` → `renderSpecs` の `opts.ignoreIds`)。逆順だと挿入失敗時にスライドを失う。
+- サムネは `SlideLayout.layout()` の同じプリミティブを HTML で描き CSS `transform: scale` で縮小(`thumbnail()`)。
+  `.pr` は縦 flex なのでテキストは **1 つの `<span>` で包む**(包まないと `<b>` が別アイテムに割れて縦に積まれる)。
+  clone のタイトル/リードはプリミティブに含まれないので `profile.title/lead` の枠位置に描く。画像(アイコン)は描かない。
+- モックは `variant` で別サンプルへ回す(`server.js`。本物の LLM は同じ入力でも毎回別構成なので不要)。
+- 開発トリガ(`DEV_TRIGGER=1`): `n`(案数。既定 1 = 従来どおり)、`useInput: true`(入力欄の文字を使う=ユーザー経路の再現)、
+  `pages: 0|1|2`(枚数セグメント相当)、`hint:"pick", i`(他の案 i に差し替え)。
+- **同じ DEV_TRIGGER チャネルを別エージェント(Codex の `run-triggers.js`)も使う**ことがある。検証前に
+  `Get-Process node` で `run-triggers` が走っていないか確認し、走っていれば終了を待つ(割り込むと batch が上書きされ検証が壊れる)。
+
+## デザイン方針(ユーザーフィードバック由来・2026-09-06)
+- 「右下に縦バー付き callout」の定型を量産しない。callout は左バー無しの薄い地だけ、頻度も抑える。
+- 2 パネルは左右等幅(`normNode` で強制)。パネル見出しは中央揃え + 太い下罫。
+- lead に書いた結論を本文で繰り返さない(lead=結論、本文=根拠)。
+- 数値があれば Figure(`column`/`line`/`stacked`/`bars`)を使う。折れ線は回転した細い矩形 + 小円で描く。
+- 因果の三角は平たく小さく(進行方向に長く、直交方向に短い)。
+- 余白に対して文字量が少なければ本文を拡大してよい(現在はスライド全体で一括 +6pt まで。部品ごとの拡大は廃止)。
+
+## 構成の方法論(ユーザー指示・2026-09-06 夜。プロンプトとエンジンの両方で実装済み)
+- 入力を「事象」「各事象の説明」「共通の観点」「時間軸」「組織」に分解し、次の順で形を決める:
+  1. 事象 1 つ → 1 ボディ(cell{items} 2 階層まで / figure + 示唆)。
+  2. 並列の事象 2〜3・説明が短い → 横並びの下線付きボックス。**幅は必ず等分**(`renderCols` の `panelLike` で weights を無視)。
+  3. 並列の事象 3〜6・説明が長い → **縦に並べる**: 行名の箱 + 横長の説明の格子(`enumToTable` / `applyMethodology`。
+     5 葉以上の cols と、列幅で 4 行超になる cols はここで自動変換)。横に割って改行だらけにしない。
+  4. 共通の観点が 2 つ以上 → table(列見出しは既定で濃い帯 + 白文字、行名は薄い箱。`headFill:"none"|"light"`, `rowHeadFill:"none"` で抑止)。
+  5. 時間軸 × 工程 → gantt(帯はホームベース型)。組織 → org。順序だけ → 箱フロー(全段同じ薄い箱。一部だけ塗らない)。
+- 強調は太字が基本。`fill:"dark"` は **見出し帯の反転**(濃い帯 + 白文字、本文は塗らない)として描く。箱全体を黒く塗らない。
+  見出しの無い dark は light に落ちる。1 枚 1 つまで。
+- 下線付きボックスは並列・因果・補足の関係にだけ使い、塊の中に下線を入れ子にしない。
+- 文字サイズはスライド全体で揃える: 部品ごとの拡大はしない(`fitBody` は縮小のみ)。版面充填率 70% 未満なら
+  全体を +2pt ずつ(本文 20pt まで)拡大、溢れ・縮小が出たら全体を 1pt ずつ縮小(`renderBodyPass`)。
+- 版面は上端揃え(中央に浮かせない)。文字だけの行・箱は自然高さの 1.5 倍までしか伸ばさない(`stretchMaxOf`)。
+  格子・図・ガント・体制図は領域いっぱいに使う。LLM の `weights` はそれらを含む行にだけ従う。
+- テンプレにリード枠が無くてもリード文は落とさない(タイトル直下に自前で描き、版面を下げる)。
+  参照解析は空の Subtitle プレースホルダもリード枠として保持する(複製の連鎖でリード枠を失わない)。
+
+## 生成文法 composition v1 と後処理(2026-09-07 未明。Codex と分担)
+- LLM 応答は `panelCount` 1〜3 / `panels` / 主図 1 つ / `note` 1 つの文法(`server/prompt.js`、Codex 担当)。
+  正規化は `normalizeSpec` → `normalizeGeneratedSpec`(Codex)→ `refineComposition`(こちら)の順。**server.js は必ず
+  `SlideLayout.normalizeSpec` を通す**(`normalizeGeneratedSpec` を直接呼ぶと後処理が飛ぶ。実際に飛んでいた)。
+- `refineComposition` の決定論的な後処理: ① 1 パネルの「ラベル: 説明」列挙(4 件以上)→ 行名の箱 + 横長の説明の格子、
+  ② 「2023 年 1,200 件、2024 年 …」の系列(3 点以上)を文章に埋めた応答 → 折れ線を主図に、残りの文は note(`seriesToLine`)、
+  ③ 全行が空の列を落とす、④ 列の全セルが同じ「ラベル: 」で始まるならラベルを列見出しに昇格、
+  ⑤ 10 行・5 列以下の `ntable` はセル合成の `table` に(ネイティブ表は密な数表だけ)、⑥ 箱フローの見出しの「01 」二重番号を外す。
+- composition のガント(`renderGanttComposition`): 行数が多いときは文字を段階的に縮めて 1 枚に収める(行を潰さない)。
+  節目は 1 行、隣接する節目があるときだけ 2 段。密度による 2 枚分割(server.js)は「全体 3pt 以上の縮小」か「格子の溢れ」のときだけ。
+- 強調は `enforceBudget` で「title / lead に名前が出る対象」だけに許す(旧形式)。composition では LLM の強調指定を全て捨てる。
+- 体制図の箱幅はラベル長に合わせ(最大 240pt)、入らないラベルは箱ごとに縮める(切らない)。
+- composition の版面充填の拡大上限は本文 20pt(24pt は疎なスライドで幼く見える)。ガントの四半期グループは月ラベルから年度四半期(4〜6 月 = Q1)で組み直す(上位ラベルが「2026年度」のような年だけの並びのときは尊重)。
+  ガントの警告は全体縮小・2 枚分割の引き金にしない(描画側で行数に応じて文字を縮める)。使われていない末尾の期間は落とす。
+- 検証トリガには `accent:"none"` も付ける(ペインの色設定が localStorage に残っていると図が強調色になる)。
+
+## 複数ペイン/複数エージェントでの実機検証(2026-09-06 夜に追加)
+- **Codex が同じリポジトリを同時編集している**(port 3443 で自分のサーバを持つ)。編集前に
+  `ls -la --time-style=+%H:%M:%S public/layout.js server/prompt.js server.js public/taskpane.js` で直近の更新を確認し、
+  直近に他者が触った関数は避けるか担当を確認する。
+- 同じサーバを別文書のペイン(別セッション)もポーリングしている。トリガは **必ず `doc` を付ける**:
+  `TRIGGER_EXTRA='{"doc":"zeroshot"}' node scripts/run-triggers.js --file test/cases.json`(reload/reanalyze も同様)。
+  ペインが文書名を名乗れないときは `doc:"(no doc)"` で拾える。`GET /api/debug/polls` で生きているペインと文書名を確認。
+- `run-triggers` は自分の tag の完了ログだけを待ち、`scripts/export-triggers.js` は tag 一致の slideId だけを書き出す。
+- 生成前に `PPT_NO_ACTIVATE=1 scripts/ppt-activate.ps1 zeroshot 1` で参照スライド(1 枚目)を選択し直す
+  (生成物は選択スライドの直後に入り、選択が新スライドへ移る)。
+- 比較シート: `python scripts/compare-sheet.py --per 4`(debug/before/t-*.png と debug/t-*.png を左右に並べる)。
+
+## やってはいけない
+- 既定レイアウトをテンプレ固定に戻す/レイアウト種別を静的分岐で限定する(自由度を下げる)。
+- 箱全体を黒く塗って強調する。箱フローの一部だけを塗る。下線付きボックスの幅を不揃いにする。
+- アイコンをフォントグリフで描く(豆腐化する)。
+- ポート 3000/3443 を使う(競合)。
+- 未検証で「できた」と言う。

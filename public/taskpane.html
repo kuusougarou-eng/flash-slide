@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flash Slide</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="stylesheet" href="taskpane.css?v=4" />
+</head>
+<body>
+  <header class="hdr">
+    <div class="wrap hdrIn">
+      <div class="brand"><span class="bolt">⚡</span> Flash Slide</div>
+      <div class="status" id="status" title="LLM 接続状態"><span class="dot" id="statusDot"></span><span id="statusText">接続確認中…</span></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <!-- ヒーロー: 何を入れる場所なのかを 1 行で。フォーカス/拡大時は畳む -->
+      <div class="hero" id="hero">
+        <h1>考えを、そのまま1〜2枚に。</h1>
+        <p class="heroSub">伝えたいことを入力して、編集できるスライドへ。</p>
+      </div>
+
+      <!-- 主役: 内容の入力。指示ではなく「中身」を置く場所であることを、
+           ラベル / プレースホルダの文体 / 出力先チップ / 別枠の希望欄 で言外に伝える -->
+      <section class="compose" id="compose">
+        <div class="composeHead">
+          <span class="fieldLbl">内容</span>
+          <span class="fieldNote">メモ・議事録・AI の回答をそのまま</span>
+          <button id="fold" class="foldBtn" type="button" hidden>入力を開く</button>
+          <button id="expand" class="iconBtn" type="button" title="入力欄を広げる(Esc で戻る)" aria-label="入力欄を広げる">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="i-open"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="i-close"><path d="M13 3 9 7m0 0V3.5M9 7h3.5M3 13l4-4m0 0v3.5M7 9H3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div class="composeBox">
+          <textarea id="prompt" spellcheck="false" placeholder="ここに、伝えたい中身をそのまま。
+
+例)
+2026 上期レビュー
+・受注は前年比 +18%(大型 2 件が牽引)
+・粗利率は ▲2.0pt。値引き拡大と物流費の上昇が要因
+・下期は値引き基準の統一と配送ルート見直しで +1.5pt を狙う"></textarea>
+          <div class="composeFoot">
+            <span class="counter" id="counter"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 従: 仕上げの希望。ここが「指示」の置き場だと分けることで、上の欄が中身の場所だと伝わる -->
+      <details class="tune" id="tune">
+        <summary><span class="tuneTitle">仕上げの希望</span><span class="tuneState" id="tuneState"></span></summary>
+        <div class="tuneBody">
+          <input type="text" id="hint" class="hint" placeholder="例: 左に比較表、右に示唆 / 3 ステップで / 表は使わない" />
+          <div class="tuneRow">
+            <span class="qLbl">色</span>
+            <div class="swatches" id="swatches">
+              <button class="sw auto" data-accent="auto" title="自動(開いているスライドに合わせる)"><span>A</span></button>
+              <button class="sw" data-accent="#FD5108" style="--c:#FD5108" title="Orange #FD5108"></button>
+              <button class="sw" data-accent="#1F4E79" style="--c:#1F4E79" title="Navy #1F4E79"></button>
+              <button class="sw" data-accent="#0B7A4B" style="--c:#0B7A4B" title="Green #0B7A4B"></button>
+              <button class="sw" data-accent="#7F1D1D" style="--c:#7F1D1D" title="Wine #7F1D1D"></button>
+              <button class="sw" data-accent="#404040" style="--c:#404040" title="Mono #404040"></button>
+              <button class="sw none" data-accent="none" title="強調色なし(完全モノトーン)"><span>—</span></button>
+              <button class="sw custom" data-accent="custom" title="カスタム色を選ぶ"><span>+</span></button>
+              <input type="color" id="accentPicker" value="#FD5108" hidden />
+            </div>
+          </div>
+          <div class="tuneRow">
+            <span class="qLbl">レイアウト</span>
+            <select id="layout" title="新規スライドのレイアウト(参照スライドを引き継ぐときは自動)"><option value="">自動</option></select>
+          </div>
+          <div class="tuneRow">
+            <span class="qLbl">モデル</span>
+            <select id="model" title="LLM モデル"><option value="">(既定 .env)</option></select>
+          </div>
+          <label class="mockRow"><input type="checkbox" id="mock" /> モック(LLM を呼ばずサンプルで描画)</label>
+        </div>
+      </details>
+
+      <div id="error" class="error" hidden></div>
+
+      <section id="sections" hidden>
+        <h3>入力が多いので、章に分けます</h3>
+        <p class="hint">章のタイトル・要旨を調整し、不要な章のチェックを外してから生成してください。各章 1 枚ずつ、並列で生成します。</p>
+        <div id="sectionList"></div>
+        <div class="row">
+          <button id="secGo" class="primary small"><span>この構成で生成</span></button>
+          <button id="secCompress" class="secondary">2 枚以内に圧縮</button>
+        </div>
+      </section>
+
+      <!-- 生成資料: 4 案並列生成の一覧(挿入済みを含む)。押すと差し替え。言語で希望を書かせない -->
+      <section id="result" class="results" hidden>
+        <div class="secHead">
+          <h2>生成資料</h2>
+          <label class="pagesCtl">枚数
+            <select id="pages">
+              <option value="0">自動(1〜2枚)</option>
+              <option value="1">1枚</option>
+              <option value="2">2枚</option>
+            </select>
+          </label>
+        </div>
+        <div class="cands" id="cands"></div>
+        <p class="hint" id="candsNote">押した案に差し替えます。表示は近似プレビューです。</p>
+        <details id="devJson" hidden>
+          <summary>スライド仕様 JSON(開発者向け: 編集して再描画)</summary>
+          <textarea id="specJson" rows="14" spellcheck="false"></textarea>
+          <button id="redraw" class="secondary">この JSON で再描画</button>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <!-- 常に手の届くところに実行。出力先(= 開いているデッキのどこに追加されるか)を隣に置く -->
+  <footer class="actions">
+    <div class="wrap">
+      <button id="go" class="primary" disabled title="Ctrl+Enter"><span id="goLabel">スライド生成</span> <span class="kbd">Ctrl+Enter</span></button>
+      <button id="refStatus" class="refStatus" title="準備中…" aria-label="出力先(クリックで読み直し)">
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4 6h8M4 9h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span id="refText">準備中…</span>
+      </button>
+    </div>
+  </footer>
+
+  <script src="layout.js?v=4"></script>
+  <script src="render.js?v=4"></script>
+  <script src="taskpane.js?v=4"></script>
+</body>
+</html>

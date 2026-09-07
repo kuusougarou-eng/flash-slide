@@ -1,0 +1,10 @@
+node_modules/
+.env
+debug/
+icons-cache/
+*.log
+
+# 開発用の一時成果物・録画
+*.mp4
+test/fixtures/*.addin.pptx
+public/assets/icon-*.png

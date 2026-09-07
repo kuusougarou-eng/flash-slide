@@ -1,0 +1,26 @@
+{
+  "name": "ppt-flash-slide",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/layout.test.js && node test/composition.test.js && node test/reference.test.js && node test/integration.test.js",
+    "start": "node server.js",
+    "sideload": "office-addin-debugging start manifest.xml desktop --no-debug",
+    "unload": "office-addin-debugging stop manifest.xml",
+    "validate": "office-addin-manifest validate manifest.xml",
+    "icons": "python scripts/make-icons.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "commonjs",
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tabler/icons": "^3.46.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "office-addin-debugging": "^6.1.2",
+    "office-addin-dev-certs": "^2.0.10"
+  }
+}

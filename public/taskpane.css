@@ -1,0 +1,210 @@
+:root {
+  --accent: #222222;
+  --ink: #222222;
+  --muted: #666666;
+  --faint: #8a8a8a;
+  --line: #e3e3e3;
+  --line-strong: #cecece;
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --pad: 20px;      /* 左右の余白(細いペインでも息をさせる) */
+  --gap: 14px;
+  --radius: 5px;
+  font-family: "Yu Gothic UI", "Yu Gothic", "Meiryo", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  font-synthesis: none;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); }
+body { display: flex; flex-direction: column; overflow: hidden; }
+
+/* 幅の広いペイン/大画面でも間延びさせない。中央に寄せて左右に余白を作る */
+.wrap { width: 100%; max-width: 620px; margin: 0 auto; }
+
+/* ---------- ヘッダ ---------- */
+.hdr { flex: 0 0 auto; padding: 16px var(--pad) 0; background: var(--bg); }
+.hdrIn { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { font-weight: 700; font-size: 17px; letter-spacing: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.bolt { color: #fd5108; font-size: 22px; line-height: 1; }
+.status { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; min-width: 0; text-align: right; }
+.status span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #c8c8c8; display: inline-block; flex: none; }
+.dot.ok { background: #1f9d55; }
+.dot.mock { background: #e0a800; }
+.dot.err { background: #c0392b; }
+
+/* ---------- 本体 ---------- */
+main { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 var(--pad) 8px; display: flex; flex-direction: column; }
+main > .wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+
+.hero { padding: 28px 0 22px; transition: opacity 0.18s ease, max-height 0.22s ease, padding 0.22s ease; overflow: hidden; max-height: 160px; }
+.hero h1 { font-size: clamp(19px, 5.5vw, 26px); font-weight: 700; line-height: 1.5; letter-spacing: -0.03em; margin: 0 0 6px; }
+.hero .heroSub { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+/* ---------- 入力(主役) ---------- */
+.compose { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 200px; }
+.composeHead { display: flex; align-items: center; gap: 8px; padding: 0 2px 7px; }
+.fieldLbl { font-size: 12px; font-weight: 600; letter-spacing: 0; color: var(--ink); }
+.fieldNote { font-size: 10px; color: #737373; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iconBtn { width: 26px; height: 26px; flex: none; border: 1px solid transparent; background: none; border-radius: 6px; color: var(--faint); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.iconBtn:hover { background: #f0f0f0; color: var(--ink); }
+.iconBtn .i-close { display: none; }
+body.zen .iconBtn .i-open { display: none; }
+body.zen .iconBtn .i-close { display: block; }
+
+.composeBox {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: #fff;
+  transition: border-color 0.15s ease;
+}
+.composeBox:focus-within { border-color: var(--ink); }
+#prompt {
+  flex: 1 1 auto; min-height: 0; width: 100%; border: none; background: none; resize: none;
+  padding: 14px 14px 6px; font: inherit; font-size: 14px; line-height: 1.8; color: var(--ink);
+}
+#prompt:focus { outline: none; }
+#prompt::placeholder { color: #8a8a8a; }
+.composeFoot { display: flex; align-items: center; gap: 8px; padding: 4px 14px 10px; font-size: 10px; color: #737373; }
+.counter { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.counter.long { color: var(--muted); font-weight: 600; }
+
+/* ---------- 仕上げの希望(従) ---------- */
+.tune { margin-top: 6px; border-bottom: 1px solid var(--line); }
+.tune > summary {
+  cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 8px;
+  padding: 13px 0; font-size: 12px; color: #595959;
+}
+.tune > summary::-webkit-details-marker { display: none; }
+.tune > summary::before { content: ""; width: 5px; height: 5px; flex: none; border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint); transform: rotate(-45deg); transition: transform 0.15s ease; margin: 0 2px 1px 2px; }
+.tune[open] > summary::before { transform: rotate(45deg); margin-bottom: 3px; }
+.tuneTitle { font-weight: 400; white-space: nowrap; flex: none; }
+.tuneState { color: var(--faint); font-size: 11px; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tuneBody { padding: 2px 2px 12px; display: flex; flex-direction: column; gap: 10px; }
+.tuneRow { display: flex; align-items: center; gap: 10px; }
+.qLbl { font-size: 11px; color: var(--faint); width: 62px; flex: none; }
+
+input[type="text"], select, #specJson {
+  width: 100%; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 10px; font: inherit; font-size: 12.5px; color: var(--ink); background: #fff;
+}
+input.hint { color: var(--muted); background: #fff; }
+input.hint:focus { color: var(--ink); background: #fff; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid #222; outline-offset: 2px; }
+.tuneRow select { font-size: 12px; padding: 6px 8px; color: var(--muted); }
+.tuneRow select:disabled { opacity: 0.6; }
+
+.swatches { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.sw { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.14); background: var(--c, #fff); padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); }
+.sw.auto { background: linear-gradient(135deg, #fd5108 0 50%, #1f4e79 50% 100%); color: #fff; font-weight: 700; }
+.sw.none { background: #fff; }
+.sw.custom { background: #fff; border-style: dashed; }
+.sw.custom.hasColor { background: var(--c); border-style: solid; }
+.sw.selected { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+.mockRow { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--faint); }
+
+/* ---------- 実行バー ---------- */
+.actions { flex: 0 0 auto; padding: 12px var(--pad) calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--bg); }
+.actions .wrap { display: flex; flex-direction: column; align-items: stretch; gap: 7px; }
+button.primary {
+  width: 100%; padding: 13px 12px; border: 1px solid #222; border-radius: 5px; background: #222; color: #fff;
+  font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 9px;
+  font-variant-numeric: tabular-nums;
+}
+button.primary:hover:not(:disabled) { background: #444; }
+button.primary:disabled { opacity: 0.42; cursor: not-allowed; }
+button.primary.busy { cursor: progress; opacity: 0.72; }
+.kbd { display: none; }
+button.primary.busy .kbd { display: none; }
+button.secondary { padding: 9px 12px; border: 1px solid var(--line-strong); background: #fff; border-radius: 7px; font: inherit; font-size: 12.5px; cursor: pointer; }
+button.secondary:hover { border-color: var(--ink); }
+
+.refStatus {
+  align-self: center; max-width: 100%; border: none; background: none; padding: 2px 4px; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; min-width: 0;
+}
+.refStatus span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.refStatus svg { flex: none; }
+.refStatus:hover { color: var(--muted); }
+.refStatus.analyzing { animation: pulse 1.2s ease-in-out infinite; }
+.refStatus.error { color: #b3462f; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ---------- 結果・章立て・エラー ---------- */
+/* エラー表示は #error 限定にする(.refStatus.error など状態クラスと衝突するため) */
+#error { margin-top: 12px; color: #a62c14; white-space: pre-wrap; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+
+#result { margin-top: var(--gap); }
+.meta { font-size: 11px; color: var(--faint); line-height: 1.6; }
+#specJson { font-family: Consolas, "Courier New", monospace; font-size: 11px; margin-top: 8px; line-height: 1.5; }
+#result details > summary { cursor: pointer; font-size: 11px; color: var(--faint); user-select: none; margin-top: 8px; }
+#redraw { margin-top: 8px; }
+
+#sections { margin-top: 16px; border: none; border-radius: 0; padding: 14px; background: #f3f3f3; }
+#sections h3 { margin: 0 0 5px; font-size: 13px; }
+#sections .hint { margin: 0 0 10px; font-size: 11px; color: var(--muted); line-height: 1.6; padding: 0; border: none; background: none; }
+.secRow { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+.secRow label { display: flex; align-items: center; gap: 5px; padding-top: 8px; }
+.secNo { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.secFields { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.secFields .secTitle { font-weight: 600; }
+.row { display: flex; gap: 8px; align-items: center; }
+button.primary.small { padding: 9px 12px; font-size: 13px; }
+
+/* ---------- 生成後: 入力欄を小さく畳む(内容は保持) ---------- */
+body.done:not(.editing) .compose { flex: 0 0 auto; min-height: 0; }
+body.done:not(.editing) .composeBox { height: 96px; }
+body.done:not(.editing) #prompt { font-size: 12px; line-height: 1.6; padding: 10px 14px 4px; }
+body.done:not(.editing) .composeFoot { padding-top: 2px; padding-bottom: 6px; }
+body.done .hero { display: none; }
+.foldBtn { border: none; background: none; padding: 2px 4px; font: inherit; font-size: 11px; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.foldBtn:hover { color: var(--ink); }
+
+/* ---------- 生成資料: 一覧(2×2、幅が広がれば 1×4)。押すと差し替え ---------- */
+.results { margin-top: 0; padding-top: 6px; }
+.secHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.secHead h2 { margin: 0; font-size: 12px; font-weight: 600; }
+.pagesCtl { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.pagesCtl select { width: auto; padding: 4px 6px; font-size: 11px; color: var(--ink); border-radius: 4px; }
+.cands { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 560px) { .cands { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cand { display: block; min-width: 0; border: 1px solid #ddd; border-radius: 4px; background: #fff; padding: 0; cursor: pointer; text-align: left; font: inherit; color: var(--ink); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
+.cand:hover { border-color: var(--ink); }
+.cand:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.cand:disabled { cursor: progress; opacity: 0.6; }
+.cand.inserted { border: 1.5px solid var(--ink); cursor: default; }
+.cand .cap { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 6px 8px 7px; font-size: 10px; line-height: 1.5; color: var(--muted); border-top: 1px solid var(--line); }
+.cand .capTitle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cand .capState { flex: none; color: var(--faint); }
+.cand.inserted .capTitle, .cand.inserted .capState { color: var(--ink); font-weight: 600; }
+/* サムネ: layout.js のプリミティブを実寸(pt=px)で描き、CSS transform で縮小する。実描画と同じ座標系 */
+.thumb { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fff; border-radius: 4px 4px 0 0; }
+.thumbIn { position: absolute; left: 0; top: 0; transform-origin: 0 0; font-family: "Yu Gothic UI", "Meiryo", "Segoe UI", sans-serif; }
+.thumbIn .pr { position: absolute; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; line-height: 1.2; white-space: pre-wrap; word-break: break-all; }
+.thumbIn .pr b { font-weight: 700; }
+.cand.skel .thumb { background: linear-gradient(90deg, #f3f3f3 25%, #e9e9e9 37%, #f3f3f3 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+.cand.skel { cursor: progress; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.results .hint { margin: 8px 0 0; font-size: 10px; line-height: 1.7; color: #777; padding: 0; border: none; background: none; }
+#result.noCands .cands, #result.noCands #candsNote { display: none; }
+
+/* ---------- 拡大(Zen)モード: 入力だけに集中させる ---------- */
+body.zen .hdr, body.zen .hero, body.zen .tune, body.zen #result, body.zen #sections, body.zen .refStatus { display: none; }
+body.zen main { padding-top: 12px; }
+body.zen .compose { min-height: 0; flex: 1 1 auto; }
+body.zen .composeBox { height: auto; }
+body.zen .fieldNote { display: none; }
+
+/* 入力中はヒーローを畳んで入力領域を広げる(狭いペインでの実効面積を稼ぐ) */
+body.typing .hero { max-height: 0; padding-top: 8px; padding-bottom: 4px; opacity: 0; }
+
+/* 極端に狭い/低いペインでの詰め */
+@media (max-height: 520px) {
+  .hero { max-height: 0; padding: 6px 0 2px; opacity: 0; }
+  .compose { min-height: 140px; }
+}
+@media (max-width: 300px) {
+  :root { --pad: 12px; }
+  .fieldNote { display: none; }
+}
