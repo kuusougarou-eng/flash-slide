@@ -54,8 +54,18 @@ function req(url, body) {
     }),
   });
   try {
-    await wait(1500);
     const base = `https://localhost:${APP_PORT}`;
+    // サーバの起動待ち: 固定待ちにすると初回起動(証明書読み込み)が間に合わずに落ちるのでポーリングする
+    let ready = false;
+    for (let i = 0; i < 60 && !ready; i++) {
+      try {
+        await req(`${base}/api/health`);
+        ready = true;
+      } catch (_) {
+        await wait(500);
+      }
+    }
+    if (!ready) throw new Error(`server did not start on ${base} within 30s`);
 
     const h = await req(`${base}/api/health`);
     assert.strictEqual(h.json.configured, true, "health.configured");
