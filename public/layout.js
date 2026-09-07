@@ -995,6 +995,7 @@
     const b = cellBody(node);
     const hasBody = !!b.text;
     const head = stripBold(node.head || "").trim();
+    if (node._inPanel && !head && b.nested) return renderNestedItems(node, r, c);
 
     // 示唆帯: 版面幅の薄い地 + 太字の一文(左バーは付けない。callout は薄い地だけ)
     if (node.style === "takeaway") {
@@ -1229,9 +1230,13 @@
     // 列見出し: 既定は塗りなし・太字。headFill:"dark" なら濃い帯 + 白文字(参考デッキの評価表)
     const headDark = m.colHeaders.length > 0 && node.headFill !== "none" && node.headFill !== "light"; // 列見出しは既定で濃い帯(参照デッキの列名帯)
     if (m.headH) {
-      if (node._composition && !headDark) c.prims.push(rect(x0, y, m.gridW, m.headH - 2, { fill: P.fillLight }));
-      if (headDark) c.prims.push(rect(x0, y, m.gridW, m.headH - 2, { fill: P.fillDark }));
-      if (m.hasRowHead) c.prims.push(textBox(x0, y, m.rowHeadW, m.headH - 2, stripBold(node.corner || ""), { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : P.text, align: "left", valign: headDark ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
+      // 左上(行見出し × 列見出しの角)は基本的に空ける。corner に文字があるときだけ帯と文字を置く
+      const cornerText = stripBold(node.corner || "").trim();
+      const bandX = m.hasRowHead && !cornerText ? x0 + m.rowHeadW : x0;
+      const bandW = m.gridW - (bandX - x0);
+      if (node._composition && !headDark) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillLight }));
+      if (headDark) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillDark }));
+      if (m.hasRowHead && cornerText) c.prims.push(textBox(x0, y, m.rowHeadW, m.headH - 2, cornerText, { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : P.text, align: "left", valign: headDark ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
       m.colHeaders.forEach((h, j) => {
         const hl = node.highlightCol === j;
         const cx = x0 + m.rowHeadW + m.colX(j);
@@ -1241,8 +1246,8 @@
         c.prims.push(textBox(cx, y, m.colWs[j], m.headH - 2, stripBold(h), { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : hl ? P.accent : P.text, align: colAlign, valign: headDark || node._composition ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
       });
       // 列見出しの罫: パネル先頭の格子なら太い罫(この行がパネル見出しを兼ねる)、単体の格子なら細い罫、パネルの中では引かない
-      if (node._panelHead && !headDark) c.prims.push(line(x0, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.fillDark, RULE_THICK)); // 隣のパネル見出し罫(h-2)と同じ y
-      else if (!node._inPanel && !headDark) c.prims.push(line(x0, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.line, 1.2));
+      if (node._panelHead && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.fillDark, RULE_THICK)); // 隣のパネル見出し罫(h-2)と同じ y
+      else if (!node._inPanel && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.line, 1.2));
       y += m.headH;
     }
     // 本文行
@@ -1654,7 +1659,10 @@
     const noteH = droppedNote ? FONT.body * FONT.lineHeight + 8 : 0; // 注記の行を先に確保する(最終値のラベルと重ねない)
     const plotTop = r.y + valueH + legendH + noteH;
     const plotH = r.h - valueH - legendH - labelH - noteH - 8;
-    const padX = Math.min(40, r.w * 0.06);
+    // 端のラベル(最初と最後)が枠外に出ないだけの余白を先に確保する。
+    // 後からクランプすると、ラベルの中心が点からずれて「値と目盛りが合っていない」ように見える
+    const labelHalf = labels.length ? Math.max.apply(null, labels.map((lb) => measure(stripBold(lb), FONT.body))) / 2 : 0;
+    const padX = Math.max(Math.min(40, r.w * 0.06), Math.min(r.w * 0.16, labelHalf + 4));
     const stepX = (r.w - padX * 2) / (n - 1);
     const yOf = (v) => plotTop + plotH - ((v - min) / (max - min || 1)) * plotH;
     if (legendH) {
@@ -1694,11 +1702,10 @@
     });
     c.prims.push(line(r.x + padX - 10, plotTop + plotH, r.x + r.w - padX + 10, plotTop + plotH, c.P.line, 1));
     if (droppedNote) c.prims.push(textBox(r.x, r.y, r.w, FONT.body * FONT.lineHeight + 4, droppedNote, { fontSize: Math.max(8, FONT.body - 2), color: c.P.textMuted, align: "right", valign: "top", pad: 2, autofit: "none", role: "note" }));
-    const clampX = (x, w) => Math.max(r.x, Math.min(x, r.x + r.w - w));
     labels.forEach((lb, i) => {
-      const x = r.x + padX + stepX * i;
-      const lw = Math.min(stepX, r.w);
-      c.prims.push(textBox(clampX(x - lw / 2, lw), plotTop + plotH + 4, lw, labelH, stripBold(lb), { fontSize: FONT.body, color: c.P.text, align: "center", valign: "top", pad: 0, autofit: "none", role: "barlabel" }));
+      const x = r.x + padX + stepX * i; // 点と同じ x
+      const lw = Math.min(stepX, padX * 2); // 隣と重ならず、かつ点を中心に置ける幅
+      c.prims.push(textBox(x - lw / 2, plotTop + plotH + 4, lw, labelH, stripBold(lb), { fontSize: FONT.body, color: c.P.text, align: "center", valign: "top", pad: 0, autofit: "none", role: "barlabel" }));
     });
   };
 
@@ -1749,12 +1756,53 @@
 
   // Generation grammar: one visual, or 1–3 equal text panels. Legacy normalization
   // below is retained only for old saved specs; every /api/generate response uses this.
+  function renderNestedItems(node, r, c) {
+    const rows = node.items.flatMap((v) => Array.isArray(v) ? v.map((t) => ({ text: itemToText(t), level: 1 })) : [{ text: itemToText(v), level: 0 }]);
+    const metrics = (fs) => rows.map((row, i) => {
+      const indent = row.level ? SPACE.levelIndent + 8 : 0;
+      const fontSize = row.level ? Math.max(FONT.floor, fs - 2) : fs;
+      const w = r.w - PAD * 2 - indent - BULLET_INDENT;
+      return { ...row, indent, fontSize, w, h: textHeight(row.text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 : 3 };
+    });
+    let fs = FONT.body, items = metrics(fs);
+    const sum = (xs) => xs.reduce((n, x) => n + x.h + x.gap, 0);
+    while (sum(items) > r.h - PAD * 2 && fs > FONT.floor) items = metrics(--fs);
+    if (fs < FONT.min) c.warnings.push("shrunk nested list to " + fs + "pt");
+    if (sum(items) > r.h) c.warnings.push("nested list overflow");
+    let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
+    for (const row of items) {
+      const x = r.x + PAD + row.indent;
+      c.prims.push(textBox(x, y, BULLET_INDENT, row.h, row.level ? "–" : "•", { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listmarker" }));
+      c.prims.push(textBox(x + BULLET_INDENT, y, row.w, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listitem", shrunk: fs < FONT.min }));
+      y += row.h + row.gap;
+    }
+  }
+  function unnumberHead(value) {
+    let text = String(value || "").trim(), prior;
+    do {
+      prior = text;
+      text = text.replace(/^(?:(?:step|ステップ)\s*\d{1,2}\s*[:：.)\-]?\s*|第\s*\d{1,2}\s*(?:段階|工程|ステップ)\s*[:：.)\-]?\s*|\d{1,2}[.．、):：\-]\s*|\d{1,2}\s+|[①-⑳]\s*)/i, "").trim();
+    } while (text !== prior);
+    return text;
+  }
+  function repeatsSummary(note, summary) {
+    const key = (v) => stripBold(String(v || "")).normalize("NFKC").replace(/[\s、。，,.：:！!？?]/g, "").replace(/(?:である|です|すること)$/u, "");
+    const a = key(note), b = key(summary);
+    return !!a && (a === b || (a.length >= 12 && b.includes(a)));
+  }
+  function compositionKey(specs) {
+    return (Array.isArray(specs) ? specs : [specs]).map((s) => {
+      if (s.panelCount > 1) return "panels:" + s.panelCount;
+      const b = s.body || {};
+      return b.type === "ntable" ? "table" : b.type || "legacy";
+    }).join("/");
+  }
   function normalizeGeneratedSpec(raw) {
     const s = raw || {};
     const plain = (v) => stripBold(str(v));
     const repairs = Array.isArray(s.compositionRepairs) ? s.compositionRepairs.slice() : [];
     const neutral = (v) => {
-      if (typeof v === "string") return stripBold(v);
+      if (typeof v === "string") return v;
       if (Array.isArray(v)) return v.map(neutral);
       if (!v || typeof v !== "object") return v;
       const o = {};
@@ -1793,16 +1841,23 @@
       const rest = source.map((x, i) => i === 0 && x === first ? Object.assign({}, x, { head: "", caption: "" }) : x);
       const items = rest.flatMap((x) => x && (!x.type || x.type === "cell") && !x.rows && !x.cols
         ? [x.caption, x.head, x.text, ...(x.items || [])].filter(Boolean) : paragraphs(x));
-      return { type: "cell", head, items, valign: "middle" };
+      const normalizedItems = [];
+      for (const item of items) {
+        if (typeof item === "string" && /^\s+[-•–]\s+/.test(item) && normalizedItems.length) {
+          if (!Array.isArray(normalizedItems[normalizedItems.length - 1])) normalizedItems.push([]);
+          normalizedItems[normalizedItems.length - 1].push(item.replace(/^\s*[-•–]\s+/, ""));
+        } else normalizedItems.push(Array.isArray(item) ? item.map((x) => str(x).replace(/^[-•–]\s+/, "")) : str(item).replace(/^[-•–]\s+/, ""));
+      }
+      return { type: "cell", head, items: normalizedItems, valign: "middle" };
     };
     const seq = (n) => {
-      const steps = (n.steps || n.items || []).map((x) => ({ head: plain(x.head || x.label || x.title), text: [plain(x.text || x.description), ...(x.items || x.bullets || []).flat().map(plain)].filter(Boolean).join("\n") }));
+      const steps = (n.steps || n.items || []).map((x) => ({ head: unnumberHead(plain(x.head || x.label || x.title)), ...(typeof x.icon === "string" && /^[a-z][a-z0-9-]{0,63}$/.test(x.icon) ? { icon: x.icon } : {}), text: [str(x.text || x.description), ...(x.items || x.bullets || []).flat().map(str)].filter(Boolean).join("\n") }));
       if (steps.length < 2 || steps.length > 8 || steps.some((x) => !x.head)) throw new Error("ステップは見出し付きで 2〜8 段にしてください。");
-      return { type: "sequence", steps };
+      return { type: "sequence", steps, ...(n.headShape === "chevron" ? { headShape: "chevron" } : {}) };
     };
     const normalizeVisual = (n) => {
-      n = neutral(n);
       if (["sequence", "steps", "process", "chevrons"].includes(n.type)) return seq(n);
+      n = neutral(n);
       if (["table", "matrix", "ntable"].includes(n.type)) {
         const t = normTable(n, n.type === "ntable" ? "ntable" : "table");
         const nc = Math.max(t.colHeaders.length, ...t.rows.map((r) => r.cells.length), 0);
@@ -1821,7 +1876,10 @@
             t.corner = "";
           }
           t.headFill = "light";
-          if (t.headShape) t.numbered = true;
+          if (t.headShape || t.numbered) {
+            t.rows.forEach((r) => { r.head = unnumberHead(r.head); });
+            if (t.headShape) t.numbered = true;
+          }
         }
         return t;
       }
@@ -1845,6 +1903,7 @@
     const count = s.panelCount == null ? inferred : Number(s.panelCount);
     if (![1, 2, 3].includes(count)) throw new Error("panelCount は 1・2・3 のいずれかです。");
     const out = { title: cleanTitle(plain(s.title || s.headline)), lead: plain(s.lead || s.message || s.subtitle), footnote: plain(s.footnote || s.source), kicker: plain(s.kicker), panelCount: count, compositionVersion: 1, body: null };
+    if (["auto", "matrix", "outline", "relational"].includes(s.layoutIntent)) out.layoutIntent = s.layoutIntent;
     if (count > 1) {
       if (!candidates || candidates.length !== count) throw new Error("パネル数と panels の要素数が一致していません。");
       out.body = { cols: candidates.map(panel) };
@@ -1874,7 +1933,7 @@
       if (main.type === "cell" || !main.type) out.body = panel(main);
       else out.body = normalizeVisual(main);
       // A note is a single full-width text box; explicit identical repeats vanish.
-      notes = [...new Set(notes)].filter((x) => x !== out.title && x !== out.lead);
+      notes = [...new Set(notes)].filter((x) => !repeatsSummary(x, out.title) && !repeatsSummary(x, out.lead));
       if (notes.length) out.note = { type: "cell", text: notes.join("\n") };
     }
     if (repairs.length) out.compositionRepairs = repairs;
@@ -1924,10 +1983,12 @@
 
   function refineComposition(out) {
     try {
+      // Preserve the explicitly requested alternate layout and LLM text hierarchy.
+      if (out.layoutIntent === "outline") return out;
       out = seriesToLine(out);
       // 箇条書きで返るか 1 文の塊で返るかは LLM 次第なので、ラベル付きの塊は割って揃える
       const targets = out && out.body ? (out.body.cols || [out.body]) : [];
-      if (targets.some(splitBlobs)) out.compositionRepairs = (out.compositionRepairs || []).concat(["labelled blob → list"]);
+      if (targets.filter((n) => !JSON.stringify(n).includes("**")).some(splitBlobs)) out.compositionRepairs = (out.compositionRepairs || []).concat(["labelled blob → list"]);
       const b0 = out && out.body;
       if (b0 && b0.type === "gantt" && Array.isArray(b0.periods) && Array.isArray(b0.tasks) && b0.tasks.length) {
         // 使われていない末尾の期間は落とす(LLM が 2 年分の月を並べても、最後の工程・節目までで切る)
@@ -2186,23 +2247,26 @@
       const w = (mr.w - GAP * (steps.length - 1)) / steps.length;
       const vertical = steps.length > 5 || steps.some((s) => estimateLines(s.text, w - PAD * 2, FONT.body) > 3 || s.text.length > 48);
       if (vertical) {
-        LEAF.table({ type: "table", colHeaders: [], headShape: "chevron", numbered: true, _composition: true, rows: steps.map((s) => ({ head: s.head, cells: [s.text] })) }, mr, c);
+        LEAF.table({ type: "table", colHeaders: [], headShape: b.headShape, numbered: true, _composition: true, rows: steps.map((s) => ({ head: s.head, cells: [s.text] })) }, mr, c);
       } else {
         const hh = Math.max(52, ...steps.map((s, i) => textHeight(String(i + 1).padStart(2, "0") + "  " + s.head, w - PAD * 2, FONT.head) + PAD * 2));
         const bh = Math.max(...steps.map((s) => textHeight(s.text, w - PAD * 2, FONT.body))) + PAD * 3;
-        const totalH = hh + GAP / 2 + bh;
+        const iconSize = steps.every((s) => s.icon) && steps.every((s) => estimateLines(s.text, w - PAD * 2, FONT.body) <= 2) ? Math.max(0, Math.min(96, w * 0.42, mr.h - hh - bh - GAP * 2)) : 0;
+        const iconArea = iconSize >= 48 ? iconSize + GAP : 0;
+        const totalH = hh + GAP / 2 + bh + iconArea;
         const sy = mr.y + Math.max(0, (mr.h - totalH) * 0.35);
         if (totalH > mr.h) c.warnings.push("sequence overflow: text exceeds body");
         steps.forEach((s, i) => {
           const x = mr.x + i * (w + GAP);
           c.prims.push(textBox(x, sy, w, hh, String(i + 1).padStart(2, "0") + "  " + s.head, { shape: "homePlate", fill: c.P.fillLight, fontSize: FONT.head, bold: true, color: c.P.text, align: "center", valign: "middle", role: "sequencehead" }));
-          LEAF.cell({ type: "cell", text: s.text, _inPanel: true, _gid: 1, valign: "middle" }, { x, y: sy + hh + GAP / 2, w, h: bh }, c);
+          if (iconArea) c.prims.push(image(s.icon, x + (w - iconSize) / 2, sy + hh + GAP, iconSize, iconSize, c.P.fillDark));
+          LEAF.cell({ type: "cell", text: s.text, _inPanel: true, _gid: 1, valign: "middle" }, { x, y: sy + hh + GAP / 2 + iconArea, w, h: bh }, c);
         });
       }
     } else {
       const node = Object.assign({}, b, { _composition: true });
       node.highlight = false;
-      if (b.type === "cell") node.valign = "middle";
+      if (b.type === "cell") { node.valign = "middle"; if (!b.head) node._inPanel = true; }
       (LEAF[b.type] || LEAF.cell)(node, mr, c);
     }
   }
@@ -2800,5 +2864,5 @@
   }
 
   const VERSION = "5.0";
-  return { layout, normalizeSpec, normalizeGeneratedSpec, parseRuns, estimateLines, naturalHeight, tint, cleanTitle, DEFAULT_PALETTE, FONT: BASE_FONT, STYLE, LEAF_TYPES, VERSION };
+  return { layout, normalizeSpec, normalizeGeneratedSpec, compositionKey, parseRuns, estimateLines, naturalHeight, tint, cleanTitle, DEFAULT_PALETTE, FONT: BASE_FONT, STYLE, LEAF_TYPES, VERSION };
 });

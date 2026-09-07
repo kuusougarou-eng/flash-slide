@@ -72,6 +72,8 @@ app.post("/api/generate", async (req, res) => {
   const { prompt = "", context = "", hint = "", model = "", mock = false, maxSlides = 2, variant = 0 } = req.body || {};
   const c = llm.cfg();
   const useMock = mock === true || req.query.mock === "1" || !c.configured;
+  const intent = ["auto", "matrix", "outline", "relational"][Math.max(0, Math.min(3, Math.trunc(Number(variant) || 0)))];
+  const normalizeResponseSpec = (s) => SlideLayout.normalizeSpec(useMock ? s : { ...s, layoutIntent: intent });
   try {
     let raw, meta;
     if (useMock) {
@@ -86,13 +88,13 @@ app.post("/api/generate", async (req, res) => {
       meta = { model: "mock", usage: null, mock: true };
     } else {
       if (!prompt.trim() && !context.trim()) return res.status(400).json({ error: "prompt が空です" });
-      const messages = buildMessages({ prompt, context, hint, maxSlides });
+      const messages = buildMessages({ prompt, context, hint, maxSlides, variant });
       const r = await llm.chat({ messages, model: model || undefined, maxTokens: 3000, temperature: 0.2, jsonMode: true });
       raw = extractJson(r.content);
       meta = { model: r.model, usage: r.usage, mock: false, endpoint: r.url };
       // 密度チェック: 1 枚に収めると全体を 3pt 以上縮めるか溢れるなら、2 枚に分けるよう 1 回だけ再依頼する(情報を落とさず、文字を小さくしない)
       const maxN = Math.max(1, Math.min(2, Number(maxSlides) || 2));
-      const first = shapeResponse(raw, SlideLayout.normalizeSpec, maxN);
+      const first = shapeResponse(raw, normalizeResponseSpec, maxN);
       if (maxN >= 2 && first.slides && first.slides.length === 1) {
         try {
           const lay = SlideLayout.layout(first.slides[0], { width: 960, height: 540, profile: { bodyFontSize: 14 } });
@@ -100,7 +102,7 @@ app.post("/api/generate", async (req, res) => {
           // ガントは行を詰めて 1 枚に収める(分割しない)。格子の溢れと、全体 3pt 以上の縮小だけを「密」とみなす
           const isGantt = first.slides[0] && first.slides[0].body && first.slides[0].body.type === "gantt";
           // 「密」= 全体を 3pt 以上縮めないと入らない / 格子が溢れる / 上限で内容が落ちた
-          const dropped = lay.warnings.some((w) => /content dropped/.test(w));
+          const dropped = lay.warnings.some((w) => /content dropped|nested list overflow/.test(w)) || lay.prims.some((p) => p.shrunk && p.fontSize < 16);
           const dense = dropped || (!isGantt && ((lay.fonts.grown || 0) <= -3 || lay.warnings.some((w) => /table overflow/.test(w))));
           if (dense) {
             const msgs2 = messages.concat([
@@ -109,7 +111,7 @@ app.post("/api/generate", async (req, res) => {
             ]);
             const r2 = await llm.chat({ messages: msgs2, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
             const raw2 = extractJson(r2.content);
-            const second = shapeResponse(raw2, SlideLayout.normalizeSpec, maxN);
+            const second = shapeResponse(raw2, normalizeResponseSpec, maxN);
             if (second.slides && second.slides.length === 2) {
               raw = raw2;
               meta.split = true;
@@ -119,25 +121,30 @@ app.post("/api/generate", async (req, res) => {
           }
           // 取りこぼしチェック: 入力にあった数値・固有名詞が spec に現れないなら、
           // それだけを挙げて 1 回聞き直す(コンテキストは足さず、与えられた内容を漏らさない)
-          const want = coverage.atoms(prompt + "\n" + context);
-          const shapedNow = shapeResponse(raw, SlideLayout.normalizeSpec, maxN);
-          const lost = coverage.missing(want, JSON.stringify(shapedNow.slides || shapedNow));
-          if (want.length >= 6 && lost.length >= 2) {
+          const src = prompt + "\n" + context;
+          const want = coverage.atoms(src);
+          // 日本語の内容語も対象にする(数値だけでは「兼業モデル」のような語の取りこぼしを拾えない)
+          const wantTerms = coverage.terms(src);
+          const shapedNow = shapeResponse(raw, normalizeResponseSpec, maxN);
+          const nowText = JSON.stringify(shapedNow.slides || shapedNow);
+          const lost = coverage.missing(want, nowText).concat(coverage.missingTerms(wantTerms, nowText));
+          if (want.length + wantTerms.length >= 8 && lost.length >= 2) {
             const msgs3 = messages.concat([
               { role: "assistant", content: JSON.stringify(raw) },
               { role: "user", content: "上の構成は入力にあった次の内容を落としています: " + lost.join(" / ") + "\n入力に無いことは足さず、これらを本文・note・2 枚目のいずれかに載せた JSON を返してください。1 枚に収まらなければ slides を 2 枚にしてください。" },
             ]);
             const r3 = await llm.chat({ messages: msgs3, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
             const raw3 = extractJson(r3.content);
-            const third = shapeResponse(raw3, SlideLayout.normalizeSpec, maxN);
-            const lost3 = coverage.missing(want, JSON.stringify(third.slides || third));
+            const third = shapeResponse(raw3, normalizeResponseSpec, maxN);
+            const t3 = JSON.stringify(third.slides || third);
+            const lost3 = coverage.missing(want, t3).concat(coverage.missingTerms(wantTerms, t3));
             if (lost3.length < lost.length) {
               raw = raw3;
               meta.recovered = lost.length - lost3.length;
               meta.usage = { prompt_tokens: (meta.usage && meta.usage.prompt_tokens || 0) + (r3.usage && r3.usage.prompt_tokens || 0), completion_tokens: (meta.usage && meta.usage.completion_tokens || 0) + (r3.usage && r3.usage.completion_tokens || 0) };
               console.log(`[coverage] recovered ${lost.length - lost3.length}/${lost.length} dropped items (slides=${(third.slides || []).length})`);
             } else {
-              console.log(`[coverage] still missing ${lost3.length}/${want.length}: ${lost3.slice(0, 6).join(" / ")}`);
+              console.log(`[coverage] still missing ${lost3.length}/${want.length + wantTerms.length}: ${lost3.slice(0, 6).join(" / ")}`);
             }
           }
         } catch (e) {
@@ -145,7 +152,7 @@ app.post("/api/generate", async (req, res) => {
         }
       }
     }
-    const shaped = shapeResponse(raw, SlideLayout.normalizeSpec, Math.max(1, Math.min(2, Number(maxSlides) || 2)));
+    const shaped = shapeResponse(raw, normalizeResponseSpec, Math.max(1, Math.min(2, Number(maxSlides) || 2)));
     const ms = Date.now() - t0;
     if (process.env.DEBUG_SNAPSHOT === "1" && !useMock) {
       // 生応答と正規化後の spec を残す(崩れの再現・回帰テストの材料)

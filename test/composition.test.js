@@ -37,7 +37,7 @@ const short = norm({ panelCount: 1, body: { type: "sequence", steps: [
 let l = draw(short); bounds(l);
 assert.strictEqual(l.prims.filter((p) => p.body && p.shape === "homePlate" && !p.rotation).length, 3);
 assert.ok(l.prims.some((p) => /^01/.test(p.text)), "ordered steps retain numbers");
-const long = norm({ panelCount: 1, body: { type: "sequence", steps: short.body.steps.map((s) => ({ ...s, text: "業務の依存関係を確認し、関係者と合意した判断基準を満たしてから次の段階へ移行する。".repeat(2) })), note: "稼働率 99.5% 以上、再処理 週 3 件以下" } });
+const long = norm({ panelCount: 1, body: { type: "sequence", headShape: "chevron", steps: short.body.steps.map((s) => ({ ...s, text: "業務の依存関係を確認し、関係者と合意した判断基準を満たしてから次の段階へ移行する。".repeat(2) })), note: "稼働率 99.5% 以上、再処理 週 3 件以下" } });
 assert.ok(long.note.text.includes("99.5%"), "misplaced LLM note must not lose thresholds");
 l = draw(long); bounds(l);
 assert.strictEqual(l.prims.filter((p) => p.rotation === 90 && p.shape === "homePlate").length, 3);
@@ -73,3 +73,32 @@ assert.throws(() => norm({ panelCount: 3, panels: [{ head: "A" }, { head: "B" }]
 assert.throws(() => norm({ panelCount: 2, panels: [{ head: "A" }, { head: "B" }], note: "別の箱" }), /補足/);
 assert.ok(!schemaDoc().includes('"highlight":true'), "prompt examples must not contradict neutral emphasis rule");
 console.log("composition tests OK");
+
+// Editorial emphasis is allowed; decorative fill is still forbidden.
+const rich = norm({ panelCount: 2, panels: [{ head: "要因", items: ["**内部要因**", ["商品力が**低下**した", "品質問題が続く"]] }, { head: "打ち手", text: "まず**商品力**を改善する", fill: "dark" }] });
+assert.ok(JSON.stringify(rich).includes("**内部要因**"));
+assert.deepStrictEqual(norm(rich), rich);
+const rl = draw(rich); bounds(rl);
+const parent = rl.prims.find((p) => p.text === "内部要因");
+const child = rl.prims.find((p) => p.text === "商品力が低下した");
+assert.ok(parent.boldRanges.length && child.boldRanges.length);
+assert.ok(child.x > parent.x, "child paragraphs have hanging indentation even when wrapped");
+const numbered = norm({ panelCount: 1, body: { type: "sequence", steps: [{ head: "01 Step 1: 調査", text: "確認する" }, { head: "第2段階 設計", text: "設計する" }] } });
+assert.deepStrictEqual(numbered.body.steps.map((s) => s.head), ["調査", "設計"]);
+assert.ok(draw(numbered).prims.some((p) => p.text === "01  調査"));
+const duplicate = norm({ panelCount: 1, lead: "商品力への投資を優先する。", body: { type: "cell", text: "事実" }, note: "商品力への投資を優先する" });
+assert.ok(!duplicate.note);
+assert.ok(norm({ ...duplicate, note: "投資額は 3 億円以内とする" }).note, "distinct conditions must survive");
+const { buildMessages } = require("../server/prompt");
+assert.strictEqual(new Set([0,1,2,3].map((variant) => buildMessages({ prompt: "同じ素材", variant })[1].content)).size, 4);
+assert.strictEqual(L.compositionKey(rich), L.compositionKey({ ...rich, title: "別の言い方" }));
+assert.notStrictEqual(L.compositionKey(rich), L.compositionKey(numbered));
+const outline = L.normalizeSpec({ panelCount: 1, layoutIntent: "outline", body: { type: "cell", items: ["論点A：説明", "論点B：説明", "論点C：説明", "論点D：説明"] } });
+assert.strictEqual(outline.body.type, "cell", "a requested textual alternative is not silently turned into a matrix");
+
+const pictured = norm({ ...short, body: { ...short.body, steps: short.body.steps.map((s,i) => ({...s, icon:["search","pencil","rocket"][i]})) } });
+assert.deepStrictEqual(norm(pictured), pictured);
+const picturedLayout = draw(pictured); bounds(picturedLayout);
+assert.strictEqual(picturedLayout.prims.filter(p => p.kind === "image" && p.w >= 48).length, 3);
+const partialIcons = norm({...pictured, body:{...pictured.body, steps:pictured.body.steps.map((s,i)=>i ? {...s,icon:undefined}:s)}});
+assert.strictEqual(draw(partialIcons).prims.filter(p=>p.kind === "image").length,0);

@@ -124,4 +124,27 @@ for (const spec of [ntable, emptyCol, prefix, series, seq, gantt]) {
   ok(cov.missing(["1,500 件"], JSON.stringify({ values: [1200, 1500], unit: "件" })).length === 0, "図の values に入っていれば取りこぼしにしない");
 }
 
+// --- 6. 折れ線: X 軸ラベルは点の真下(端でずらさない) ---
+{
+  const lay = L.layout(L.normalizeSpec({ title: "推移", body: { type: "line", unit: "件", labels: ["2023", "2024", "2025", "2026"], series: [{ label: "件数", values: [1200, 1500, 1900, 2160] }] } }), { width: 960, height: 540, palette: { accent: "none" } });
+  const dots = lay.prims.filter((p) => p.shape === "ellipse").map((p) => p.x + p.w / 2);
+  const labs = lay.prims.filter((p) => p.role === "barlabel" && /^20\d\d$/.test(p.text || "")).map((p) => p.x + p.w / 2);
+  ok(dots.length === 4 && labs.length === 4, "点とラベルが同数");
+  dots.forEach((d, i) => ok(Math.abs(d - labs[i]) < 0.5, `ラベル ${i} が点の真下(ずれ ${Math.abs(d - labs[i]).toFixed(1)}pt)`));
+}
+
+// --- 7. 格子の左上(角)は既定で空ける。corner の文字があるときだけ置く ---
+{
+  const rows = ["利用動向", "供給制約", "採算性", "住民課題"].map((h, i) => ({ head: h, cells: [`現状 ${i}`, `示唆 ${i}`] }));
+  const cornerEls = (corner) => {
+    const lay = L.layout(L.normalizeSpec({ panelCount: 1, title: "観点ごとに整理する", body: { type: "table", corner, colHeaders: ["現状", "示唆"], rows } }), { width: 960, height: 540, palette: { accent: "none" } });
+    const rowHead = lay.prims.find((p) => /利用動向/.test(p.text || ""));
+    const heads = lay.prims.filter((p) => p.role === "matrixcell" && /^(現状|示唆)$/.test(p.text || ""));
+    const headY = Math.min.apply(null, heads.map((p) => p.y));
+    return lay.prims.filter((p) => p.body && p.y < headY + 5 && p.x < rowHead.x + rowHead.w - 2 && (p.text || p.fill));
+  };
+  ok(cornerEls("").length === 0, "corner が空なら左上には何も置かない");
+  ok(cornerEls("観点").some((p) => /観点/.test(p.text || "")), "corner に文字があるときだけ左上に置く");
+}
+
 console.log(`pipeline tests OK (${checks} checks)`);

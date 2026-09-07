@@ -41,39 +41,14 @@ function post(p, body) {
   });
 }
 
+const cov = require("../server/coverage");
+
 /** 全角→半角、空白と桁区切りを落として比較しやすくする */
 function fold(s) {
   return String(s || "")
     .replace(/[Ａ-Ｚａ-ｚ０-９％．，－]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
     .replace(/[,，\s]/g, "")
     .toUpperCase();
-}
-
-/**
- * 落としてはいけない原子を抜く。
- *  - 数値 + 単位(22%, 3,860, 54.2歳, 212路線, 38億円, 1.6倍, 4.1/5, 18か月, 2週間 …)
- *  - 英数の固有名詞らしき語(BI, FAQ, PoC, PMO, A社 …)
- */
-function atoms(prompt) {
-  const out = new Set();
-  const t = String(prompt || "");
-  const numRe = /\d[\d,，.]*\s*(?:%|％|割|倍|件|名|社|人|歳|億円|万円|円|路線|本|テーブル|か月|ヶ月|カ月|か年|年|月|週間|週|日|回|時間|pt|ポイント|\/\s*\d+)?/g;
-  let m;
-  while ((m = numRe.exec(t))) {
-    const raw = m[0].trim();
-    if (fold(raw).replace(/[^0-9]/g, "").length === 0) continue;
-    // 単位の無い裸の数字は、桁が小さいと箇条書きの番号などと紛れるので 3 桁以上だけ拾う
-    const bare = /^\d[\d,，.]*$/.test(raw);
-    if (bare && fold(raw).replace(/[^0-9]/g, "").length < 3) continue;
-    out.add(raw);
-  }
-  for (const w of t.match(/\b[A-Z][A-Za-z]{1,9}\b/g) || []) out.add(w);
-  for (const w of t.match(/[A-Z]\s?社/g) || []) out.add(w);
-  return [...out];
-}
-
-function has(hay, atom) {
-  return fold(hay).includes(fold(atom));
 }
 
 (async () => {
@@ -84,7 +59,8 @@ function has(hay, atom) {
   const rows = [];
   for (let rep = 0; rep < repeat; rep++) {
     for (const c of cases) {
-      const want = atoms(c.prompt);
+      const want = cov.atoms(c.prompt);
+      const wantT = cov.terms(c.prompt);
       let gen;
       try {
         gen = await post("/api/generate", { prompt: c.prompt, model: model || undefined, maxSlides: 2 });
@@ -93,14 +69,22 @@ function has(hay, atom) {
         continue;
       }
       const text = JSON.stringify(gen.slides || gen.sections || gen);
-      const missing = want.filter((a) => !has(text, a));
-      rows.push({ case: c.name, rep, total: want.length, covered: want.length - missing.length, missing, slides: (gen.slides || []).length, ms: gen.ms, spec: gen.slides });
-      if (!quiet) console.log(`${c.name.padEnd(16)} ${String(want.length - missing.length).padStart(3)}/${String(want.length).padEnd(3)} 枚=${(gen.slides || []).length}${missing.length ? "  落ち: " + missing.join(" / ") : ""}`);
+      const missing = cov.missing(want, text);
+      const missingT = cov.missingTerms(wantT, text);
+      rows.push({ case: c.name, rep, total: want.length, covered: want.length - missing.length, missing, totalTerms: wantT.length, coveredTerms: wantT.length - missingT.length, missingTerms: missingT, slides: (gen.slides || []).length, ms: gen.ms, spec: gen.slides });
+      if (!quiet)
+        console.log(
+          `${c.name.padEnd(16)} 数値 ${String(want.length - missing.length).padStart(3)}/${String(want.length).padEnd(3)} 語 ${String(wantT.length - missingT.length).padStart(3)}/${String(wantT.length).padEnd(3)} 枚=${(gen.slides || []).length}` +
+            (missing.length ? "\n    数値落ち: " + missing.join(" / ") : "") +
+            (missingT.length ? "\n    語落ち: " + missingT.join(" / ") : "")
+        );
     }
   }
-  const tot = rows.reduce((a, r) => a + r.total, 0);
-  const cov = rows.reduce((a, r) => a + r.covered, 0);
-  console.log(`\n被覆率: ${cov}/${tot} = ${((cov / Math.max(1, tot)) * 100).toFixed(1)}%  (取りこぼしのあったケース ${rows.filter((r) => r.missing.length).length}/${rows.length})`);
+  const sum = (k) => rows.reduce((a, r) => a + (r[k] || 0), 0);
+  const pct = (a, b) => ((a / Math.max(1, b)) * 100).toFixed(1);
+  console.log(`\n数値・固有名詞: ${sum("covered")}/${sum("total")} = ${pct(sum("covered"), sum("total"))}%`);
+  console.log(`日本語の内容語: ${sum("coveredTerms")}/${sum("totalTerms")} = ${pct(sum("coveredTerms"), sum("totalTerms"))}%`);
+  console.log(`取りこぼしのあったケース: ${rows.filter((r) => (r.missing || []).length || (r.missingTerms || []).length).length}/${rows.length}`);
   const out = path.join(ROOT, "debug", `coverage-${Date.now()}.json`);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, JSON.stringify(rows, null, 1));

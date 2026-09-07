@@ -61,12 +61,34 @@
                     <bt:Image size="80" resid="Icon.80x80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>FlashSlide.Taskpane</TaskpaneId>
+                    <!-- 文書側の設定 Office.AutoShowTaskpaneWithDocument=true で、開いたときに自動でこのペインが開く -->
+                    <TaskpaneId>Office.AutoShowTaskpaneWithDocument</TaskpaneId>
                     <SourceLocation resid="Taskpane.Url" />
                   </Action>
                 </Control>
               </Group>
             </OfficeTab>
+          </ExtensionPoint>
+          <!-- 右クリック(テキスト選択時)にも入口を出す。選んだ文字はペインが起動時に取り込む -->
+          <ExtensionPoint xsi:type="ContextMenu">
+            <OfficeMenu id="ContextMenuText">
+              <Control xsi:type="Button" id="FlashSlide.ContextButton">
+                <Label resid="ContextButton.Label" />
+                <Supertip>
+                  <Title resid="ContextButton.Label" />
+                  <Description resid="TaskpaneButton.Tooltip" />
+                </Supertip>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16" />
+                  <bt:Image size="32" resid="Icon.32x32" />
+                  <bt:Image size="80" resid="Icon.80x80" />
+                </Icon>
+                <Action xsi:type="ShowTaskpane">
+                  <TaskpaneId>Office.AutoShowTaskpaneWithDocument</TaskpaneId>
+                  <SourceLocation resid="Taskpane.Url" />
+                </Action>
+              </Control>
+            </OfficeMenu>
           </ExtensionPoint>
         </DesktopFormFactor>
       </Host>
@@ -85,11 +107,12 @@
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Flash Slide を使い始める" />
         <bt:String id="Group.Label" DefaultValue="Flash Slide" />
-        <bt:String id="TaskpaneButton.Label" DefaultValue="スライド生成" />
+        <bt:String id="TaskpaneButton.Label" DefaultValue="メモからスライド" />
+        <bt:String id="ContextButton.Label" DefaultValue="この内容でスライドを作る" />
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="ホームタブの「スライド生成」からタスクペインを開き、プロンプトを入力してください。" />
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="プロンプトからコンサル風スライドを 1 枚生成して挿入します" />
+        <bt:String id="GetStarted.Description" DefaultValue="ホームタブの「メモからスライド」か、文字を選んで右クリック →「この内容でスライドを作る」から開きます。" />
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="メモ・議事録・AI の回答を貼るだけで、コンサル品質のスライドを数秒で生成し、開いているデッキのデザインに合わせて挿入します" />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

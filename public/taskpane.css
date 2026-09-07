@@ -94,8 +94,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .tuneRow select { font-size: 12px; padding: 6px 8px; color: var(--muted); }
 .tuneRow select:disabled { opacity: 0.6; }
 
-.swatches { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.sw { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.14); background: var(--c, #fff); padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); }
+.swatches { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sw { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.14); background: var(--c, #fff); padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); }
 .sw.auto { background: linear-gradient(135deg, #fd5108 0 50%, #1f4e79 50% 100%); color: #fff; font-weight: 700; }
 .sw.none { background: #fff; }
 .sw.custom { background: #fff; border-style: dashed; }

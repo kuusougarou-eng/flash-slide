@@ -320,6 +320,14 @@
       all.forEach((r, i) => {
         if (r.status === "fulfilled" && r.value && Array.isArray(r.value.slides) && r.value.slides.length && !nb.cands[i]) nb.cands[i] = { specs: r.value.slides, gen: r.value };
       });
+      // Keep the inserted candidate; show only genuinely different compositions.
+      const seen = new Set([SlideLayout.compositionKey(nb.cands[nb.insertedIdx].specs)]);
+      nb.cands.forEach((c, i) => {
+        if (!c || i === nb.insertedIdx) return;
+        const key = SlideLayout.compositionKey(c.specs);
+        if (seen.has(key)) nb.cands[i] = null;
+        else seen.add(key);
+      });
       showCandidates(n, true);
     } catch (e) {
       if (batch === nb) batch = null;
@@ -700,6 +708,12 @@
           saveSettings();
         } else if (t.hint === "pick") {
           await replaceWith(Number(t.i) || 0); // 開発用: 他の案 i に差し替え(カードのクリック相当)
+        } else if (t.hint === "tune") {
+          $("tune").open = t.open !== false; // 開発用: 「仕上げの希望」を開閉
+        } else if (t.hint === "autoopen") {
+          // 開発用: 自動オープンのチェックを切り替えて文書設定を保存(change イベント経由)
+          $("autoOpen").checked = t.on !== false;
+          $("autoOpen").dispatchEvent(new Event("change"));
         } else if (t.hint === "zen") {
           setZen(!document.body.classList.contains("zen"));
         } else if (t.hint === "reanalyze") {
@@ -725,6 +739,48 @@
   }
   function debugSnapshot(png, name) {
     fetch("/api/debug/snapshot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ png, name: name || "slide" }) }).catch(() => {});
+  }
+
+  // ---------- 自動オープン(文書スコープの設定) ----------
+  const AUTO_KEY = "Office.AutoShowTaskpaneWithDocument";
+  function initAutoOpen() {
+    let ok = false;
+    try {
+      ok = Office.context.requirements.isSetSupported("AddInCommands", "1.1") && !!(Office.context.document && Office.context.document.settings);
+    } catch (_) {}
+    $("autoRow").hidden = !ok;
+    if (!ok) return;
+    try {
+      $("autoOpen").checked = Office.context.document.settings.get(AUTO_KEY) === true;
+    } catch (_) {}
+    $("autoOpen").addEventListener("change", () => {
+      const on = $("autoOpen").checked;
+      try {
+        if (on) Office.context.document.settings.set(AUTO_KEY, true);
+        else Office.context.document.settings.remove(AUTO_KEY);
+        Office.context.document.settings.saveAsync((r) => {
+          if (r.status !== Office.AsyncResultStatus.Succeeded) showError("自動オープンの設定を保存できませんでした: " + (r.error && r.error.message));
+          fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ autoOpen: on, saved: r.status }) }).catch(() => {});
+        });
+      } catch (e) {
+        showError("自動オープンの設定に失敗しました: " + e.message);
+      }
+    });
+  }
+  /** 起動時に文字が選択されていて入力欄が空なら、その文字を取り込む(右クリック「この内容でスライドを作る」からの導線) */
+  function importSelection() {
+    if ($("prompt").value.trim()) return;
+    try {
+      Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (r) => {
+        if (r.status !== Office.AsyncResultStatus.Succeeded) return;
+        const t = String(r.value || "").trim();
+        if (t.length < 4) return;
+        $("prompt").value = t;
+        updateCompose();
+        saveSettings();
+        fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ importedSelection: t.length }) }).catch(() => {});
+      });
+    } catch (_) {}
   }
 
   // ---------- 初期化 ----------
@@ -794,5 +850,7 @@
     $("hint").addEventListener("input", updateTuneState);
     updateCompose();
     updateTuneState();
+    initAutoOpen();
+    importSelection();
   });
 })();

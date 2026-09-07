@@ -79,6 +79,8 @@
             <select id="model" title="LLM モデル"><option value="">(既定 .env)</option></select>
           </div>
           <label class="mockRow"><input type="checkbox" id="mock" /> モック(LLM を呼ばずサンプルで描画)</label>
+          <!-- 文書に Office.AutoShowTaskpaneWithDocument を保存する。複製されたデッキでも次回から自動で開く(アドイン導入済みの環境で) -->
+          <label class="mockRow autoRow" id="autoRow" hidden><input type="checkbox" id="autoOpen" /> このデッキでは次回から自動で開く</label>
         </div>
       </details>
 

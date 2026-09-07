@@ -69,6 +69,24 @@
 - `office-addin-debugging start manifest.xml desktop --document <pptx>` は指定デッキ内容でランチャーを作るが、
   webextension を埋め込まずタスクペインが自動オープンしないことがある。clone 検証は上記 DEV_TRIGGER + makeref が確実。
 
+## 認知・導線(2026-09-07)
+- 前提: 中央配布済み・認知ゼロ・テンプレより既存デッキの複製が主流。狙いは「開いたときに自然にペインが出る」「Copilot に埋もれない」。
+- **自動オープン**: manifest の `ShowTaskpane` の `TaskpaneId` を **`Office.AutoShowTaskpaneWithDocument`** にした(これがないと文書側の設定は無視される。
+  公式: 中央展開/サイドロードのみ対応、Marketplace 不可)。ペインの「仕上げの希望」末尾に **「このデッキでは次回から自動で開く」**
+  チェック(`settings.set(AUTO_KEY, true)` + `saveAsync`)。複製されたデッキにも設定が付いて回る(受け手にアドインが入っている前提)。
+- **右クリック導線**: `ExtensionPoint xsi:type="ContextMenu"` / `OfficeMenu id="ContextMenuText"`「この内容でスライドを作る」。
+  ペインは起動時に `getSelectedDataAsync(Text)` で選択文字を取り込む(入力欄が空のときだけ、4 文字以上)。
+- リボンのラベルは「スライド生成」→「メモからスライド」(PowerPoint の「新しいスライド」と区別)。Supertip も価値が伝わる文に。
+- **manifest 変更は PowerPoint の再起動後に反映**(サイドロード済みでも登録の読み直しが要る)。未保存の文書があるので再起動はユーザーに確認してから。
+- 既存の `inject-addin.py`(`visibility="1"` の焼き付け)だけでは、manifest 側の指定がないと**自動では開かない**(2026-09-07 実機確認: ポーリング記録に現れず)。
+- 開発トリガ: `hint:"tune"`(仕上げの希望の開閉)、`hint:"autoopen", on`(自動オープンの切替+保存)。
+- **自動オープンは実機で成功**(2026-09-07): manifest 変更後に PowerPoint を再起動し、設定入りの `debug/promo-autoopen.pptx` を
+  シェルから開いたら、クリックなしでペインが開いた(ポーリング記録 + スクショ `debug/ui-autoopen-result.png`)。
+- 再起動の手順: 未保存の文書は `SaveCopyAs` で `debug/backup/` に退避 → `Saved=-1` にして Close → `Quit`(元ファイルは上書きしない)。
+- **キー送信(`ui.ps1 keys`)は、前面確認と同じプロセス内で判定してから送る**。`powershell … | tr` の後ろに `&&` を置くと
+  tr の終了コードで続行してしまい、前面が別アプリでもキーが飛ぶ(2026-09-07 に ChatGPT へ Shift+F10/Esc を送ってしまった)。
+- 未検証: PowerPoint デスクトップで ContextMenuText が実際に描画されるか(前面化が要るためユーザーの合図待ち)/ Copilot ペインと同時に開いたときの見え方 / 「ユーザーが閉じたら設定が消える」という説(公式ページに記載なし)。
+
 ## デザイン方針(ユーザーフィードバック由来・2026-09-06 追記分)
 - **既定はグレースケール**(タスクペインの色スウォッチ既定「なし」)。色は選ばれたときだけ。強調は太字・濃い地で表す。
 - **入力の情報を落とさない。** 目安を超える量は 2 枚目(詳細・補足)に流す。詳細(格子セル・第 2 階層)は 12pt まで小さくしてよい(基本は 18pt)。
