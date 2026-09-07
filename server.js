@@ -185,12 +185,25 @@ app.post("/api/debug/log", (req, res) => {
   res.json({ ok: true });
 });
 
-// HTTPS (office-addin-dev-certs の証明書)
+// HTTPS (office-addin-dev-certs の証明書)。Office アドインは HTTPS でしか読み込めない。
+// 証明書が無い環境(CI・クローン直後)では、ALLOW_HTTP=1 のときだけ HTTP で起動する(テスト用)。
 const certDir = path.join(os.homedir(), ".office-addin-dev-certs");
-const key = fs.readFileSync(path.join(certDir, "localhost.key"));
-const cert = fs.readFileSync(path.join(certDir, "localhost.crt"));
-https.createServer({ key, cert }, app).listen(PORT, () => {
+let tls = null;
+try {
+  tls = { key: fs.readFileSync(path.join(certDir, "localhost.key")), cert: fs.readFileSync(path.join(certDir, "localhost.crt")) };
+} catch (_) {
+  if (process.env.ALLOW_HTTP !== "1") {
+    console.error("開発証明書が見つかりません: " + certDir);
+    console.error("  npx office-addin-dev-certs install   を実行してから起動してください。");
+    console.error("  (テスト目的で HTTP で起動する場合は ALLOW_HTTP=1)");
+    process.exit(1);
+  }
+}
+const banner = () => {
   const c = llm.cfg();
-  console.log(`Flash Slide server: https://localhost:${PORT}`);
+  console.log(`Flash Slide server: ${tls ? "https" : "http"}://localhost:${PORT}`);
   console.log(`LLM configured: ${c.configured} (model=${c.model || "-"})${c.configured ? "" : "  → mock モードで動作"}`);
-});
+  if (!tls) console.log("注意: 証明書が無いため HTTP で起動しました。Office アドインとしては読み込めません(テスト専用)。");
+};
+if (tls) https.createServer(tls, app).listen(PORT, banner);
+else require("http").createServer(app).listen(PORT, banner);

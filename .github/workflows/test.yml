@@ -1,0 +1,27 @@
+name: test
+
+# 複数人・複数エージェントが同じファイルを触るため、契約(正規化パイプラインの配線・
+# レイアウト規律・参照テンプレートの解析)が壊れたことを push の時点で機械的に検出する。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # 開発証明書は CI には無い。統合テストは HTTP にフォールバックして同じ検証を行う
+      - run: npm test

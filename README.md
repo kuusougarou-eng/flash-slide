@@ -1,5 +1,7 @@
 # Flash Slide — プロンプトから高速でコンサル風スライドを作る PowerPoint アドイン
 
+[![test](https://github.com/kuusougarou-eng/flash-slide/actions/workflows/test.yml/badge.svg)](https://github.com/kuusougarou-eng/flash-slide/actions/workflows/test.yml)
+
 Office.js(PowerPoint JavaScript API 1.4〜1.10)と LiteLLM(OpenAI 互換)だけで、
 **1 プロンプト → 1〜2 枚**のスライドを高速生成する。複雑な推論は行わず、**1 回の LLM 呼び出し**で
 スライド構造(JSON)を得て、レイアウト計算はローカルの純関数エンジンで行う。
@@ -16,6 +18,7 @@ Office.js(PowerPoint JavaScript API 1.4〜1.10)と LiteLLM(OpenAI 互換)だけ�
 ```bash
 npm install
 npx office-addin-dev-certs install   # 初回のみ: https://localhost 用の開発証明書
+                                     # (未インストールでも npm test は HTTP にフォールバックして通る)
 npm run icons                        # マニフェスト用アイコン生成(public/assets/)
 ```
 

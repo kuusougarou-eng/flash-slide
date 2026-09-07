@@ -16,6 +16,16 @@ const http = require("http");
 
 const FAKE_PORT = 4555;
 const APP_PORT = 3999;
+// 開発証明書が無い環境(CI・クローン直後)では HTTP で起動して同じ検証をする
+const HAS_CERTS = (() => {
+  try {
+    require("fs").accessSync(require("path").join(require("os").homedir(), ".office-addin-dev-certs", "localhost.crt"));
+    return true;
+  } catch (_) {
+    return false;
+  }
+})();
+const SCHEME = HAS_CERTS ? "https" : "http";
 const root = path.join(__dirname, "..");
 
 function wait(ms) {
@@ -50,11 +60,12 @@ function req(url, body) {
       LLM_API_KEY: "test-key",
       LLM_MODEL: "fake-fast",
       DEBUG_SNAPSHOT: "0",
+      ALLOW_HTTP: HAS_CERTS ? "0" : "1",
       LOG_REQUESTS: "0",
     }),
   });
   try {
-    const base = `https://localhost:${APP_PORT}`;
+    const base = `${SCHEME}://localhost:${APP_PORT}`;
     // サーバの起動待ち: 固定待ちにすると初回起動(証明書読み込み)が間に合わずに落ちるのでポーリングする
     let ready = false;
     for (let i = 0; i < 60 && !ready; i++) {
