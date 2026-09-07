@@ -16,6 +16,7 @@ const express = require("express");
 
 const llm = require("./server/llm");
 const { buildMessages, extractJson, shapeResponse } = require("./server/prompt");
+const coverage = require("./server/coverage");
 const { pickMock, SAMPLES } = require("./server/mock");
 const icons = require("./server/icons");
 const SlideLayout = require("./public/layout.js");
@@ -98,7 +99,9 @@ app.post("/api/generate", async (req, res) => {
           // 「密」= 全体を 3pt 以上縮めても入らない / 格子・ガントが溢れる。部品単位の軽い縮小(shrunk)だけでは分けない(4 段の箱フローを 2 枚に割るような過剰分割を防ぐ)
           // ガントは行を詰めて 1 枚に収める(分割しない)。格子の溢れと、全体 3pt 以上の縮小だけを「密」とみなす
           const isGantt = first.slides[0] && first.slides[0].body && first.slides[0].body.type === "gantt";
-          const dense = !isGantt && ((lay.fonts.grown || 0) <= -3 || lay.warnings.some((w) => /table overflow/.test(w)));
+          // 「密」= 全体を 3pt 以上縮めないと入らない / 格子が溢れる / 上限で内容が落ちた
+          const dropped = lay.warnings.some((w) => /content dropped/.test(w));
+          const dense = dropped || (!isGantt && ((lay.fonts.grown || 0) <= -3 || lay.warnings.some((w) => /table overflow/.test(w))));
           if (dense) {
             const msgs2 = messages.concat([
               { role: "assistant", content: JSON.stringify(raw) },
@@ -112,6 +115,29 @@ app.post("/api/generate", async (req, res) => {
               meta.split = true;
               meta.usage = { prompt_tokens: (r.usage && r.usage.prompt_tokens || 0) + (r2.usage && r2.usage.prompt_tokens || 0), completion_tokens: (r.usage && r.usage.completion_tokens || 0) + (r2.usage && r2.usage.completion_tokens || 0) };
               console.log(`[density] split into 2 slides (grown=${lay.fonts.grown || 0}, warnings=${lay.warnings.length})`);
+            }
+          }
+          // 取りこぼしチェック: 入力にあった数値・固有名詞が spec に現れないなら、
+          // それだけを挙げて 1 回聞き直す(コンテキストは足さず、与えられた内容を漏らさない)
+          const want = coverage.atoms(prompt + "\n" + context);
+          const shapedNow = shapeResponse(raw, SlideLayout.normalizeSpec, maxN);
+          const lost = coverage.missing(want, JSON.stringify(shapedNow.slides || shapedNow));
+          if (want.length >= 6 && lost.length >= 2) {
+            const msgs3 = messages.concat([
+              { role: "assistant", content: JSON.stringify(raw) },
+              { role: "user", content: "上の構成は入力にあった次の内容を落としています: " + lost.join(" / ") + "\n入力に無いことは足さず、これらを本文・note・2 枚目のいずれかに載せた JSON を返してください。1 枚に収まらなければ slides を 2 枚にしてください。" },
+            ]);
+            const r3 = await llm.chat({ messages: msgs3, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+            const raw3 = extractJson(r3.content);
+            const third = shapeResponse(raw3, SlideLayout.normalizeSpec, maxN);
+            const lost3 = coverage.missing(want, JSON.stringify(third.slides || third));
+            if (lost3.length < lost.length) {
+              raw = raw3;
+              meta.recovered = lost.length - lost3.length;
+              meta.usage = { prompt_tokens: (meta.usage && meta.usage.prompt_tokens || 0) + (r3.usage && r3.usage.prompt_tokens || 0), completion_tokens: (meta.usage && meta.usage.completion_tokens || 0) + (r3.usage && r3.usage.completion_tokens || 0) };
+              console.log(`[coverage] recovered ${lost.length - lost3.length}/${lost.length} dropped items (slides=${(third.slides || []).length})`);
+            } else {
+              console.log(`[coverage] still missing ${lost3.length}/${want.length}: ${lost3.slice(0, 6).join(" / ")}`);
             }
           }
         } catch (e) {

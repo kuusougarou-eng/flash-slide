@@ -208,6 +208,12 @@
   function isNumeric(t) {
     return NUMERIC_RE.test(t) && /\d/.test(t);
   }
+  /** 上限で切り捨てたときに「何をいくつ落としたか」を警告に残す(黙って消さない) */
+  function capList(arr, n, ctx, what) {
+    const a = arr || [];
+    if (a.length > n && ctx && ctx.warnings) ctx.warnings.push(`content dropped: ${what} ${a.length - n} 件(上限 ${n})`);
+    return a.slice(0, n);
+  }
   function isNA(t) {
     return /^[\s—\-–ー]*$/.test(t);
   }
@@ -1100,9 +1106,9 @@
 
   // ---------- table: セルを組み合わせた格子(ネイティブ表ではない) ----------
   /** 格子の寸法計算(自然高さ・列幅・行高さ・フォント)。r が null なら自然高さのみ */
-  function matrixMetrics(node, w, r) {
-    const colHeaders = (node.colHeaders || []).slice(0, 6);
-    const rows = (node.rows || []).slice(0, 10);
+  function matrixMetrics(node, w, r, ctx) {
+    const colHeaders = capList(node.colHeaders, 6, ctx, "列");
+    const rows = capList(node.rows, 12, ctx, "行");
     const ncols = Math.max(1, colHeaders.length || Math.max.apply(null, [1].concat(rows.map((rw) => (rw.cells || []).length))));
     const hasRowHead = !!(node.corner && node.corner.trim()) || rows.some((rw) => rw.head && String(rw.head).trim());
     const chevron = node.headShape === "chevron" && hasRowHead;
@@ -1192,7 +1198,7 @@
 
   LEAF.table = function (node, r, c) {
     const P = c.P;
-    const m = matrixMetrics(node, r.w, r);
+    const m = matrixMetrics(node, r.w, r, c);
     const mid = (c.matrixSeq = (c.matrixSeq || 0) + 1); // 隣り合う格子の文字サイズを揃えるための識別子
     // 揃えは列単位で決める(数値だけの列は右揃え、文字が混じる列は左揃え)。行ごとに右/左が混在すると平仄が崩れる
     const colNumeric = [];
@@ -1548,7 +1554,7 @@
   // ---------- Figure(ネイティブ図形で描く基本チャート。数値は入力にあるものだけ) ----------
   /** 横棒: ラベルは折り返して必ず読める幅、基準線 1 本、値は右 */
   LEAF.bars = function (node, r, c) {
-    const items = (node.items || []).slice(0, 10);
+    const items = capList(node.items, 10, c, "棒");
     const n = items.length || 1;
     const unit = node.unit || "";
     const max = Math.max.apply(null, items.map((it) => Math.abs(Number(it.value) || 0)).concat([1]));
@@ -1593,7 +1599,7 @@
 
   /** 縦棒グラフ: 量の差・カテゴリ比較 */
   LEAF.column = function (node, r, c) {
-    const items = (node.items || []).slice(0, 8);
+    const items = capList(node.items, 8, c, "棒");
     const n = items.length || 1;
     const unit = node.unit || "";
     const max = Math.max.apply(null, items.map((it) => Math.abs(Number(it.value) || 0)).concat([1]));
@@ -1620,8 +1626,8 @@
 
   /** 折れ線グラフ: 推移(最大 2 系列)。線は回転した細い矩形、点は小円 */
   LEAF.line = function (node, r, c) {
-    const labels = (node.labels || []).slice(0, 12);
-    let series = (node.series || []).slice(0, 2);
+    const labels = capList(node.labels, 12, c, "系列の点");
+    let series = capList(node.series, 2, c, "系列");
     let droppedNote = "";
     if (series.length === 2) {
       const mx = (sv) => Math.max.apply(null, (sv.values || []).map(Number).filter((v) => !isNaN(v)).concat([0]));
@@ -1698,7 +1704,7 @@
 
   /** 100% 積み上げ横棒: 構成比(円グラフの代わり) */
   LEAF.stacked = function (node, r, c) {
-    const items = (node.items || []).slice(0, 6);
+    const items = capList(node.items, 6, c, "積み上げの項目");
     const n = items.length || 1;
     const parts = node.parts || Array.from(new Set(items.flatMap((it) => (it.values || []).map((_, i) => i)))).map((i) => "系列" + (i + 1));
     const cols = [c.P.accent, c.P.fillDark, c.P.line, c.P.fillMid, c.P.fillLight, c.P.lineLight];
@@ -2035,7 +2041,16 @@
       });
       return uniq.length >= 3 && uniq.every((p) => !isNaN(p.value)) ? uniq : null;
     };
-    const strip = (t) => t.replace(/[、。]?\s*(20\d\d)\s*年[のに]?\s*[\d,]+(?:\.\d+)?\s*(件|円|人|%|万円|億円|社|台|回)?/g, "").replace(/^[、。\s]+|[、。\s]+$/g, "").replace(/(と増加している|と増えている|に増えた|へ増えた)/g, "").replace(/^[、\s]+/, "").replace(/(^|[。\n])[^。\n]{0,14}(は|が|も|で)。/g, "$1").replace(/(^|[。\n])[^。\n\d]{0,16}(増加|増え|減少|減っ|推移)(した|している|ている)?。/g, "$1"); // 数値を抜いて述語や主語を失った断片を落とす
+    // 図に載せた系列を含む文だけを落とし、残りの文は一字も変えずに残す。
+    // (数値だけを正規表現で抜くと「月間問合せ件数はで増加している」のような壊れた文が残る)
+    const strip = (t) => {
+      const yearVal = /(20\d\d)\s*年[のに]?\s*[\d,]+(?:\.\d+)?/g;
+      return String(t || "")
+        .split(/(?<=[。\n])/)
+        .filter((sent) => ((sent.match(yearVal) || []).length < 2))
+        .join("")
+        .replace(/^[、。\s]+|[、。\s]+$/g, "");
+    };
     if (out.panelCount === 2 || out.panelCount === 3) {
       const cols = out.body.cols || [];
       const hits = cols.map((c) => find(textOfCell(c)));

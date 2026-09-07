@@ -109,4 +109,19 @@ for (const spec of [ntable, emptyCol, prefix, series, seq, gantt]) {
   }
 }
 
+// --- 5. 取りこぼし検出: 入力の数値・固有名詞が spec に無ければ拾えること ---
+{
+  const cov = require("../server/coverage");
+  const prompt = "初期費用 4.2 億円、運用費 年 6,000 万円、稼働まで 18 か月。国内導入実績 12 社。FAQ ボットを導入する。";
+  const list = cov.atoms(prompt);
+  ok(list.includes("4.2 億円") && list.includes("6,000 万円") && list.includes("18 か月"), "数値 + 単位を原子として抜く");
+  ok(list.includes("FAQ"), "英字の固有名詞を抜く");
+  ok(cov.missing(list, JSON.stringify({ text: prompt })).length === 0, "原文をそのまま含めば取りこぼしなし");
+  const summarized = JSON.stringify({ text: "5 年総額 7.2 億円。国内導入実績 12 社。FAQ ボットを導入する。" });
+  const lost = cov.missing(list, summarized);
+  ok(lost.includes("4.2 億円") && lost.includes("6,000 万円"), "内訳を合計に丸めた要約は取りこぼしとして検出する");
+  // 図は値と単位を別に持つので、数字だけの一致も可とする(誤検出を避ける)
+  ok(cov.missing(["1,500 件"], JSON.stringify({ values: [1200, 1500], unit: "件" })).length === 0, "図の values に入っていれば取りこぼしにしない");
+}
+
 console.log(`pipeline tests OK (${checks} checks)`);
