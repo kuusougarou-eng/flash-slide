@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "node test/layout.test.js && node test/composition.test.js && node test/reference.test.js && node test/integration.test.js",
+    "test": "node test/layout.test.js && node test/composition.test.js && node test/pipeline.test.js && node test/reference.test.js && node test/integration.test.js",
     "start": "node server.js",
     "sideload": "office-addin-debugging start manifest.xml desktop --no-debug",
     "unload": "office-addin-debugging stop manifest.xml",

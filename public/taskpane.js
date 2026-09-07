@@ -689,7 +689,8 @@
         } else if (t.hint === "renderspec" && t.doc && Array.isArray(t.specs)) {
           // Reproducible rendering QA: only a specifically addressed test deck.
           await refreshReference();
-          const specs = t.specs.map(SlideLayout.normalizeGeneratedSpec);
+          // 本番と同じ入口(normalizeSpec)を通す。文法の正規化と決定論的な後処理の両方が掛かる
+          const specs = t.specs.map(SlideLayout.normalizeSpec);
           const results = await SlideRender.renderSpecs(specs, { prepared, palette: palette() });
           fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ renderedSpecs: t.tag || "composition", results: results.map(({ slideId, warnings, debug }) => ({ slideId, warnings, debug })) }) }).catch(() => {});
         } else if (t.hint === "setprompt") {

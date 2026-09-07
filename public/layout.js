@@ -1913,15 +1913,6 @@
       // 箱フローの見出しに LLM が付けた「01 」などの番号は外す(エンジンが番号を振るので二重になる)
       if (b0 && b0.type === "sequence" && Array.isArray(b0.steps)) b0.steps.forEach((st) => (st.head = String(st.head || "").replace(/^\s*(?:\d{1,2}|[A-Z])[\.\)\s:：]+\s*/, "")));
       if (b0 && (b0.type === "table" || b0.type === "ntable") && Array.isArray(b0.rows)) {
-        // 全行が空(— / 空文字)の列は落とす(空の観点列は情報ではない)
-        const ncol = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
-        const empty = [];
-        for (let j = 0; j < ncol; j++) if (b0.rows.every((rw) => isNA(cellText((rw.cells || [])[j])) || !cellText((rw.cells || [])[j]).trim())) empty.push(j);
-        if (empty.length && empty.length < ncol) {
-          b0.rows.forEach((rw) => (rw.cells = (rw.cells || []).filter((_, j) => !empty.includes(j))));
-          if (b0.colHeaders) b0.colHeaders = b0.colHeaders.filter((_, j) => !empty.includes(j));
-          out.compositionRepairs = (out.compositionRepairs || []).concat(["empty column dropped"]);
-        }
         // 列の全セルが同じ「ラベル: 」で始まるなら、ラベルを列見出しに昇格させて本文から外す(4 回同じ前置きを読ませない)
         const ncol2 = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
         for (let j = 0; j < ncol2; j++) {
@@ -1933,6 +1924,7 @@
           if (existing && existing.trim() && existing.trim() !== pref[0]) continue;
           b0.colHeaders = b0.colHeaders || [];
           while (b0.colHeaders.length < ncol2) b0.colHeaders.push("");
+          const changed = b0.colHeaders[j] !== pref[0];
           b0.colHeaders[j] = pref[0];
           b0.rows.forEach((rw) => {
             const cl = (rw.cells || [])[j];
@@ -1940,7 +1932,16 @@
             if (cl && typeof cl === "object") cl.text = t;
             else rw.cells[j] = t;
           });
-          out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → column header"]);
+          if (changed) out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → column header"]);
+        }
+        // 全行が空(— / 空文字)の列は落とす(空の観点列は情報ではない)
+        const ncol = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
+        const empty = [];
+        for (let j = 0; j < ncol; j++) if (b0.rows.every((rw) => isNA(cellText((rw.cells || [])[j])) || !cellText((rw.cells || [])[j]).trim())) empty.push(j);
+        if (empty.length && empty.length < ncol) {
+          b0.rows.forEach((rw) => (rw.cells = (rw.cells || []).filter((_, j) => !empty.includes(j))));
+          if (b0.colHeaders) b0.colHeaders = b0.colHeaders.filter((_, j) => !empty.includes(j));
+          out.compositionRepairs = (out.compositionRepairs || []).concat(["empty column dropped"]);
         }
         // ネイティブ表は密な数表(11 行超・6 列超)だけ。それ以外はセル合成の格子で描く(文字サイズと帯の規律が効く)
         if (b0.type === "ntable" && b0.rows.length <= 10 && (b0.colHeaders || []).length <= 5) {
