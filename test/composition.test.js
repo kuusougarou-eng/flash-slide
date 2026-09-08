@@ -79,10 +79,14 @@ const rich = norm({ panelCount: 2, panels: [{ head: "要因", items: ["**内部�
 assert.ok(JSON.stringify(rich).includes("**内部要因**"));
 assert.deepStrictEqual(norm(rich), rich);
 const rl = draw(rich); bounds(rl);
-const parent = rl.prims.find((p) => p.text === "内部要因");
-const child = rl.prims.find((p) => p.text === "商品力が低下した");
-assert.ok(parent.boldRanges.length && child.boldRanges.length);
-assert.ok(child.x > parent.x, "child paragraphs have hanging indentation even when wrapped");
+// 箇条書きは 1 行ずつシェイプに分けない(生成後にユーザーが箱を選び Enter で項目を足し引きするため)。
+// 入れ子は同じシェイプの中で itemsBody の記法(親「•」/ 子「　–」)で表す。
+// Office.js には段落ごとの字下げが無く(ParagraphFormat は horizontalAlignment と indentLevel だけ)、
+// 折り返した子の行を字下げ位置に揃えることはできない。編集容易性をそちらより優先する。
+const listPrim = rl.prims.find((p) => p.text && p.text.includes("内部要因") && p.text.includes("商品力が低下した"));
+assert.ok(listPrim, "nested items stay in one shape");
+assert.ok(listPrim.boldRanges.length >= 2, "editorial emphasis survives inside the folded list");
+assert.strictEqual(listPrim.text.split("\n").filter((l) => /^　\s*[–-]/.test(l)).length, 2, "child rows are indented and marked inside the shape");
 const numbered = norm({ panelCount: 1, body: { type: "sequence", steps: [{ head: "01 Step 1: 調査", text: "確認する" }, { head: "第2段階 設計", text: "設計する" }] } });
 assert.deepStrictEqual(numbered.body.steps.map((s) => s.head), ["調査", "設計"]);
 assert.ok(draw(numbered).prims.some((p) => p.text === "01  調査"));

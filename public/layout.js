@@ -2032,19 +2032,19 @@
         })
       : null;
     const labelled = !!pairs && pairs.every(Boolean);
-    // Office.js の ParagraphFormat は horizontalAlignment と indentLevel しか持たない(実機で確認)。
-    // 段落間隔・行間・ぶら下げインデントが無いので、1 シェイプの中で項目間に余白は作れない。
-    // したがって **余白のためにシェイプを分けない**。分けるのは API の穴を埋める必要があるときだけ:
-    // 兄弟パネルで行を揃える / ラベル列を揃える / 子階層に別の字送りと字下げを与える。
-    // 既定は 1 シェイプ・複数段落(PowerPoint 本来の箇条書き)。生成後に項目を足すのが Enter だけで済み、
-    // 1 シェイプで描く他の箇条書きと見た目も揃う
-    if (!(node._siblingRows > 0) && !labelled && !rows.some((v) => v.level)) {
-      const text = rows.map((v) => v.text).join("\n");
-      const tw = r.w - PAD * 2 - BULLET_INDENT;
-      const fs = fitBody(c, text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, true);
-      const need = textHeight(text, tw, fs) + PAD * 2;
+    // **箇条書きを 1 行ずつ別のシェイプにしない。** 生成後にユーザーが箱を選び、Enter で項目を足し引きする
+    // のが実際の使い方で、行ごとに箱があるとその操作ができない(管理が破綻する)。
+    // Office.js の ParagraphFormat は horizontalAlignment と indentLevel しか持たず(実機で確認)、
+    // 段落間隔・行間・ぶら下げも、段落ごとの字下げも無い。1 シェイプでできることは限られるが、
+    // それは編集容易性より優先しない。兄弟パネルの行揃えもこのために捨てた(パネルごとに 1 シェイプ)。
+    // 余った高さは縦中央に置いて、下半分だけが空く見え方を避ける。
+    if (!labelled) {
+      const body = cellBody(node); // 入れ子は itemsBody の記法(親「•」/ 子「　–」)で 1 シェイプに畳む
+      const tw = r.w - PAD * 2 - (body.list ? BULLET_INDENT : 0);
+      const fs = fitBody(c, body.text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, body.list);
+      const need = textHeight(body.text, tw, fs) + PAD * 2;
       c.prims.push(
-        textBox(r.x, r.y, r.w, r.h, text, { fontSize: fs, color: c.P.text, bullets: true, valign: r.h > need * 1.4 ? "middle" : "top", pad: PAD, role: "listitem", shrunk: fs < FONT.min })
+        textBox(r.x, r.y, r.w, r.h, body.text, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min })
       );
       if (need > r.h) c.warnings.push("nested list overflow");
       return;
