@@ -1338,16 +1338,45 @@
         const fill = fillKey ? { light: P.fillLight, dark: P.fillDark, tint: P.accentTint, accent: P.accent }[fillKey] : cellHl && !rowHl ? P.accentTint : null;
         const dark = fillKey === "dark" || fillKey === "accent";
         if (fill) c.prims.push(rect(cx, y + 2, cw, rh - 4, { fill })); // 塗りセルは左右の余白なしで隣と連結(ガントの帯)
-        const raw = cellText(cell);
+        // セルは文章版(text)と箇条書き版(items)の両方を持てる。実際に割り当てられた列幅で文章版が
+        // 折り返す行数を測り、狭くて読みにくくなるときだけ箇条書き版に切り替える(静的な文分割はしない。
+        // LLM に両方書かせておき、どちらを採用するかは幾何が決まってから機械的に選ぶ)
+        const itemsArr = cell && typeof cell === "object" && Array.isArray(cell.items) && cell.items.length ? cell.items.map(String) : null;
+        const proseText = cellText(cell);
+        let raw = proseText;
+        if (itemsArr) {
+          const proseLines = estimateLines(stripBold(proseText), cw - (fill ? 4 : m.cellPad * 2), m.fs);
+          if (proseLines > 2) raw = itemsArr.map((s) => "・" + s).join("\n");
+        }
         // 「—」は明示的なダッシュか、塗りセルの無い表の空セルだけ(ガントの空白セルには出さない)
         const na = !fill && isNA(runs.text) && !m.hasFills; // 塗りセルのある表(ガント等)では空欄・ダッシュとも空白のまま
         const numeric = colNumeric[j];
         const lines = raw.split("\n");
         const marked = lines.filter((l) => /^\s*[・•\-–]/.test(l)).length;
-        // 複数行: 全行に記号があれば記号を外してネイティブ箇条書き、記号なしなら箇条書き、混在(見出し行+記号行)はそのまま
+        // 複数行: 全行に記号があれば記号を外してネイティブ箇条書き、記号なしなら箇条書き。
+        // 先頭行だけ記号なし・残り全行に記号(見出し+箇条書き)は、見出し行を除いた分だけ箇条書きにする
         const isList = lines.length > 1 && (marked === 0 || marked === lines.length);
-        const text = na ? "—" : isList && marked ? lines.map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n") : raw;
-        c.prims.push(textBox(cx, y, cw, rh, text, { fontSize: m.fs, color: dark ? P.textOnDark : na ? P.lineLight : P.text, bold: false, align: fill ? "center" : numeric ? "right" : "left", valign: "middle", pad: fill ? 2 : m.cellPad, bullets: isList, role: "matrixcell" }));
+        const headBullet = !isList && lines.length > 1 && marked === lines.length - 1 && !/^\s*[・•\-–]/.test(lines[0]);
+        let text, bulletFrom;
+        if (na) text = "—";
+        else if (isList && marked) text = lines.map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n");
+        else if (headBullet) {
+          text = [lines[0]].concat(lines.slice(1).map((l) => l.replace(/^\s*[・•\-–]\s*/, ""))).join("\n");
+          bulletFrom = stripBold(lines[0]).length + 1; // 見出し行(記号なし)の次の文字から箇条書きにする
+        } else text = raw;
+        c.prims.push(
+          textBox(cx, y, cw, rh, text, {
+            fontSize: m.fs,
+            color: dark ? P.textOnDark : na ? P.lineLight : P.text,
+            bold: false,
+            align: fill ? "center" : numeric ? "right" : "left",
+            valign: "middle",
+            pad: fill ? 2 : m.cellPad,
+            bullets: isList || headBullet,
+            bulletFrom,
+            role: "matrixcell",
+          })
+        );
         if (node.axes && j > 0) c.prims.push(line(cx, y + 2, cx, y + rh - 2, P.lineLight, RULE_THIN)); // 4 象限などは列の間にも薄い縦罫
       }
       if (!last && !m.chevron) c.prims.push(line(x0 + (m.hasRowHead ? m.rowHeadW : 0), y + rh, x0 + m.gridW, y + rh, P.lineLight, RULE_THIN));
