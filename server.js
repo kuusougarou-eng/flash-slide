@@ -136,31 +136,36 @@ app.post("/api/generate", async (req, res) => {
             }
           }
           // 取りこぼしチェック: 入力にあった数値・固有名詞が spec に現れないなら、
-          // それだけを挙げて 1 回聞き直す(コンテキストは足さず、与えられた内容を漏らさない)
-          const src = prompt + "\n" + context;
-          const want = coverage.atoms(src);
-          // 日本語の内容語も対象にする(数値だけでは「兼業モデル」のような語の取りこぼしを拾えない)
-          const wantTerms = coverage.terms(src);
-          const shapedNow = shapeResponse(raw, normalizeResponseSpec, maxN);
-          const nowText = JSON.stringify(shapedNow.slides || shapedNow);
-          const lost = coverage.missing(want, nowText).concat(coverage.missingTerms(wantTerms, nowText));
-          if (want.length + wantTerms.length >= 8 && lost.length >= 2) {
-            const msgs3 = messages.concat([
-              { role: "assistant", content: JSON.stringify(raw) },
-              { role: "user", content: "上の構成は入力にあった次の内容を落としています: " + lost.join(" / ") + "\n入力に無いことは足さず、これらを本文・note・2 枚目のいずれかに載せた JSON を返してください。1 枚に収まらなければ slides を 2 枚にしてください。" },
-            ]);
-            const r3 = await llm.chat({ messages: msgs3, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
-            const raw3 = extractJson(r3.content);
-            const third = shapeResponse(raw3, normalizeResponseSpec, maxN);
-            const t3 = JSON.stringify(third.slides || third);
-            const lost3 = coverage.missing(want, t3).concat(coverage.missingTerms(wantTerms, t3));
-            if (lost3.length < lost.length) {
-              raw = raw3;
-              meta.recovered = lost.length - lost3.length;
-              meta.usage = { prompt_tokens: (meta.usage && meta.usage.prompt_tokens || 0) + (r3.usage && r3.usage.prompt_tokens || 0), completion_tokens: (meta.usage && meta.usage.completion_tokens || 0) + (r3.usage && r3.usage.completion_tokens || 0) };
-              console.log(`[coverage] recovered ${lost.length - lost3.length}/${lost.length} dropped items (slides=${(third.slides || []).length})`);
-            } else {
-              console.log(`[coverage] still missing ${lost3.length}/${want.length + wantTerms.length}: ${lost3.slice(0, 6).join(" / ")}`);
+          // それだけを挙げて 1 回聞き直す(コンテキストは足さず、与えられた内容を漏らさない)。
+          // allowSections=false(章の生成)では prompt に元の入力全体がそのまま含まれたまま渡ってくるため、
+          // この章だけを見て「入力全体」を分母にすると常に大半が欠落扱いになる(意味のある検知にならない)。
+          // 章の情報保持は章立て自体(summary に事実を持たせる指示)で担保し、ここでは測らない
+          if (allowSections) {
+            const src = prompt + "\n" + context;
+            const want = coverage.atoms(src);
+            // 日本語の内容語も対象にする(数値だけでは「兼業モデル」のような語の取りこぼしを拾えない)
+            const wantTerms = coverage.terms(src);
+            const shapedNow = shapeResponse(raw, normalizeResponseSpec, maxN);
+            const nowText = JSON.stringify(shapedNow.slides || shapedNow);
+            const lost = coverage.missing(want, nowText).concat(coverage.missingTerms(wantTerms, nowText));
+            if (want.length + wantTerms.length >= 8 && lost.length >= 2) {
+              const msgs3 = messages.concat([
+                { role: "assistant", content: JSON.stringify(raw) },
+                { role: "user", content: "上の構成は入力にあった次の内容を落としています: " + lost.join(" / ") + "\n入力に無いことは足さず、これらを本文・note・2 枚目のいずれかに載せた JSON を返してください。1 枚に収まらなければ slides を 2 枚にしてください。" },
+              ]);
+              const r3 = await llm.chat({ messages: msgs3, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+              const raw3 = extractJson(r3.content);
+              const third = shapeResponse(raw3, normalizeResponseSpec, maxN);
+              const t3 = JSON.stringify(third.slides || third);
+              const lost3 = coverage.missing(want, t3).concat(coverage.missingTerms(wantTerms, t3));
+              if (lost3.length < lost.length) {
+                raw = raw3;
+                meta.recovered = lost.length - lost3.length;
+                meta.usage = { prompt_tokens: (meta.usage && meta.usage.prompt_tokens || 0) + (r3.usage && r3.usage.prompt_tokens || 0), completion_tokens: (meta.usage && meta.usage.completion_tokens || 0) + (r3.usage && r3.usage.completion_tokens || 0) };
+                console.log(`[coverage] recovered ${lost.length - lost3.length}/${lost.length} dropped items (slides=${(third.slides || []).length})`);
+              } else {
+                console.log(`[coverage] still missing ${lost3.length}/${want.length + wantTerms.length}: ${lost3.slice(0, 6).join(" / ")}`);
+              }
             }
           }
           // 最終確認: 2 枚構成でもまだ縮めないと入らない/溢れるなら、文字を潰して押し込む代わりに
