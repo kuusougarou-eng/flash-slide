@@ -395,16 +395,41 @@
       Object.assign(FONT, saved);
       let bottom = bodyRect.y,
         alloc = bodyRect.y;
+      const bands = []; // 実際に何かが見えている縦の区間(重なりは後で畳む)
       for (const p of pr) {
-        if (p.kind === "line") bottom = Math.max(bottom, p.y1, p.y2);
-        else if (p.y != null && p.h != null) {
+        if (p.kind === "line") {
+          bottom = Math.max(bottom, p.y1, p.y2);
+          bands.push([Math.min(p.y1, p.y2), Math.max(p.y1, p.y2)]);
+        } else if (p.y != null && p.h != null) {
           alloc = Math.max(alloc, p.y + p.h);
           // 見える高さ: 塗りのある箱・図形・画像は枠、上寄せの文字は文字の高さ(伸ばした空の枠は数えない)
-          if (p.kind === "image" || (p.fill && p.fill !== "none") || p.shape || !p.text || (p.valign && p.valign !== "top")) bottom = Math.max(bottom, p.y + p.h);
-          else bottom = Math.max(bottom, p.y + Math.min(p.h, textHeight(p.text, p.w - (p.pad || 0) * 2, p.fontSize || FONT.body, 0) + (p.pad || 0) * 2));
+          const visible =
+            p.kind === "image" || (p.fill && p.fill !== "none") || p.shape || !p.text || (p.valign && p.valign !== "top")
+              ? p.h
+              : Math.min(p.h, textHeight(p.text, p.w - (p.pad || 0) * 2, p.fontSize || FONT.body, 0) + (p.pad || 0) * 2);
+          bottom = Math.max(bottom, p.y + visible);
+          bands.push([p.y, p.y + visible]);
         }
       }
-      const fill = (bottom - bodyRect.y) / Math.max(1, bodyRect.h);
+      // 充填率は「一番下の要素の位置」ではなく「実際に見えている縦の区間の合計」で測る。
+      // 下端だけで測ると、少ない項目を大きな行間でばら撒いた版面が「埋まっている」と誤判定され、
+      // 文字を大きくする段(下の版面充填)が発動しない(実測: 4 項目のパネルで下端 0.85 / 実面積 0.50)。
+      bands.sort((a, b) => a[0] - b[0]);
+      let covered = 0,
+        curFrom = null,
+        curTo = null;
+      for (const [a, b] of bands) {
+        const lo = Math.max(a, bodyRect.y),
+          hi = Math.min(b, bodyRect.y + bodyRect.h);
+        if (hi <= lo) continue;
+        if (curTo == null || lo > curTo) {
+          if (curTo != null) covered += curTo - curFrom;
+          curFrom = lo;
+          curTo = hi;
+        } else curTo = Math.max(curTo, hi);
+      }
+      if (curTo != null) covered += curTo - curFrom;
+      const fill = covered / Math.max(1, bodyRect.h);
       // 「悪い」= 実際に文字が縮んだ / 格子・ガントが溢れた / 割付が版面を越えた / 行の自然高さが 5% 超過(数 pt の超過は比例配分で吸収されるので許す)
       const rowsOver = wr.some((w) => {
         const m = w.match(/^rows overflow: natural (\d+)pt > (\d+)pt/);
