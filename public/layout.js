@@ -1857,9 +1857,9 @@
       let gy = r.y + PAD;
       items.forEach((row) => {
         const gx = r.x + PAD + row.indent;
-        // 点は箱の中央ではなく本文の 1 行目に合わせる(2 行の項目で点だけ下がって見えるのを防ぐ)
-        if (markerW) c.prims.push(textBox(gx, gy + (gridRowH - row.h) / 2, markerW, row.h, "•", { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listmarker" }));
-        c.prims.push(textBox(gx + markerW, gy, row.w, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", role: "listitem", shrunk: fs < FONT.min }));
+        // 点は PowerPoint 本来の箇条書き(paragraphFormat.bulletFormat)に描かせる。
+        // 「・」を別の図形として置くと、行の高さや折り返しのたびに点だけ位置がずれる。
+        c.prims.push(textBox(gx, gy, row.w + markerW, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
         gy += gridRowH;
       });
       return;
@@ -1867,8 +1867,7 @@
     let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
     for (const row of items) {
       const x = r.x + PAD + row.indent;
-      if (markerW) c.prims.push(textBox(x, y, markerW, row.h, row.level ? "–" : "•", { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listmarker" }));
-      c.prims.push(textBox(x + markerW, y, row.w, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listitem", shrunk: fs < FONT.min }));
+      c.prims.push(textBox(x, y, row.w + markerW, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
       y += row.h + row.gap;
     }
   }
