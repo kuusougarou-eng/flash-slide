@@ -1,0 +1,5795 @@
+{
+  "version": 1,
+  "authoredBy": "Astra in this task",
+  "status": "agent-reviewed; awaiting user review",
+  "synthetic": true,
+  "coordinateSystem": "960x540 pt",
+  "cases": [
+    {
+      "id": "process-short",
+      "split": "dev",
+      "input": "調査、設計、実行の順に進む。調査では現状と課題を整理し、設計では対応方針と担当を決める。実行では施策を実行し効果を測る。",
+      "required": [
+        "調査",
+        "設計",
+        "実行",
+        "現状",
+        "課題",
+        "担当",
+        "効果"
+      ],
+      "design": {
+        "reason": "短文を矢羽根と意味のあるピクトグラムの一組で示す。下に要約帯を重ねない。",
+        "checks": {
+          "family": "sequence",
+          "icons": 3,
+          "horizontal": true,
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "調査から実行までを三つの工程で進める",
+        "lead": "各工程の成果を確認してから次の工程へ進む",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "sequence",
+          "steps": [
+            {
+              "head": "調査",
+              "text": "現状と課題を整理する",
+              "icon": "search"
+            },
+            {
+              "head": "設計",
+              "text": "対応方針と担当を決める",
+              "icon": "pencil"
+            },
+            {
+              "head": "実行",
+              "text": "施策を実行し効果を測る",
+              "icon": "rocket"
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "調査から実行までを三つの工程で進める",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "各工程の成果を確認してから次の工程へ進む",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 40,
+            "y": 178,
+            "w": 282.6666666666667,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 46,
+            "y": 178,
+            "w": 252.66666666666669,
+            "h": 52,
+            "text": "01  調査",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "search",
+            "x": 137.33333333333334,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 52,
+            "y": 374,
+            "w": 258.6666666666667,
+            "h": 60,
+            "text": "現状と課題を整理する",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 338.6666666666667,
+            "y": 178,
+            "w": 282.6666666666667,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 344.6666666666667,
+            "y": 178,
+            "w": 252.66666666666669,
+            "h": 52,
+            "text": "02  設計",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "pencil",
+            "x": 436,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350.6666666666667,
+            "y": 374,
+            "w": 258.6666666666667,
+            "h": 60,
+            "text": "対応方針と担当を決める",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 637.3333333333334,
+            "y": 178,
+            "w": 282.6666666666667,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 643.3333333333334,
+            "y": 178,
+            "w": 252.66666666666669,
+            "h": 52,
+            "text": "03  実行",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "rocket",
+            "x": 734.6666666666667,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 649.3333333333334,
+            "y": 374,
+            "w": 258.6666666666667,
+            "h": 60,
+            "text": "施策を実行し効果を測る",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "process-long",
+      "split": "dev",
+      "input": "移行順は棚卸し、参照系移行、更新系移行、旧環境停止。1,200テーブルの依存関係を確認し、移行対象を確定する。38本のBIを移行する。稼働率99.5%以上、再処理は週3件以下を2週連続で満たすことを確認する。64本のバッチを切り替える。切替リハーサルは2回行う。運用手順を更新し、年1,800万円のライセンスを解約する。",
+      "required": [
+        "1,200",
+        "38",
+        "99.5",
+        "3件",
+        "2週",
+        "64",
+        "2回",
+        "1,800"
+      ],
+      "design": {
+        "reason": "条件は該当工程と同じ行に置く。長文なので縦方向。",
+        "checks": {
+          "family": "sequence",
+          "icons": 0,
+          "horizontal": false,
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "移行は各工程の確認条件を満たして進める",
+        "lead": "参照系の安定稼働を確認した後に更新系を切り替える",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "sequence",
+          "steps": [
+            {
+              "head": "棚卸し",
+              "text": "1,200テーブルの依存関係を確認し、移行対象を確定する。"
+            },
+            {
+              "head": "参照系移行",
+              "text": "38本のBIを移行する。稼働率99.5%以上、再処理は週3件以下を2週連続で満たすことを確認する。"
+            },
+            {
+              "head": "更新系移行",
+              "text": "64本のバッチを切り替える。切替リハーサルは2回行う。"
+            },
+            {
+              "head": "旧環境停止",
+              "text": "運用手順を更新し、年1,800万円のライセンスを解約する。"
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "移行は各工程の確認条件を満たして進める",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "参照系の安定稼働を確認した後に更新系を切り替える",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 154,
+            "w": 224,
+            "h": 68,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 54,
+            "y": 154,
+            "w": 196,
+            "h": 68,
+            "text": "01  棚卸し",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 290,
+            "y": 154,
+            "w": 624,
+            "h": 68,
+            "text": "1,200テーブルの依存関係を確認し、移行対象を確定する。",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 290,
+            "y1": 232,
+            "x2": 914,
+            "y2": 232,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 236,
+            "w": 224,
+            "h": 68,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 54,
+            "y": 236,
+            "w": 196,
+            "h": 68,
+            "text": "02  参照系移行",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 290,
+            "y": 236,
+            "w": 624,
+            "h": 68,
+            "text": "38本のBIを移行する。稼働率99.5%以上、再処理は週3件以下を2週連続で満たすことを確認する。",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 290,
+            "y1": 314,
+            "x2": 914,
+            "y2": 314,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 318,
+            "w": 224,
+            "h": 68,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 54,
+            "y": 318,
+            "w": 196,
+            "h": 68,
+            "text": "03  更新系移行",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 290,
+            "y": 318,
+            "w": 624,
+            "h": 68,
+            "text": "64本のバッチを切り替える。切替リハーサルは2回行う。",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 290,
+            "y1": 396,
+            "x2": 914,
+            "y2": 396,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 400,
+            "w": 224,
+            "h": 68,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 54,
+            "y": 400,
+            "w": 196,
+            "h": 68,
+            "text": "04  旧環境停止",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 290,
+            "y": 400,
+            "w": 624,
+            "h": 68,
+            "text": "運用手順を更新し、年1,800万円のライセンスを解約する。",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "cause-action",
+      "split": "dev",
+      "input": "売上は前年比30%減。商品の陳腐化と品質への不満、担当者不足による訪問減少が原因。商品改善を優先し、顧客の不満を調査して品質を改善する。営業支援では重点顧客への訪問時間を確保する。",
+      "required": [
+        "30%",
+        "陳腐化",
+        "品質",
+        "担当者",
+        "訪問",
+        "顧客"
+      ],
+      "design": {
+        "reason": "対立を等幅二項にする。黒塗りではなく文章と部分太字で優先を伝える。",
+        "checks": {
+          "family": "panels:2",
+          "minBodyFont": 18,
+          "bold": true
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 2,
+        "title": "売上減少への対応は商品改善を優先する",
+        "lead": "売上は前年比30%減となった",
+        "footnote": "架空の評価用データ",
+        "panels": [
+          {
+            "head": "減少の要因",
+            "items": [
+              "**商品力の低下**",
+              [
+                "商品の陳腐化と品質への不満"
+              ],
+              "**営業接点の減少**",
+              [
+                "担当者の不足で訪問が減少"
+              ]
+            ]
+          },
+          {
+            "head": "優先する打ち手",
+            "items": [
+              "**商品改善を優先**",
+              [
+                "顧客の不満を調査し、品質を改善"
+              ],
+              "**営業活動を支援**",
+              [
+                "重点顧客への訪問時間を確保"
+              ]
+            ]
+          }
+        ]
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "売上減少への対応は商品改善を優先する",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "売上は前年比30%減となった",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 151,
+            "w": 426,
+            "h": 42,
+            "text": "減少の要因",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 40,
+            "y1": 200,
+            "x2": 466,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 48,
+            "y": 266,
+            "w": 410,
+            "h": 39,
+            "text": "商品力の低下",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                6
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 64,
+            "y": 309,
+            "w": 394,
+            "h": 58,
+            "text": "– 商品の陳腐化と品質への不満",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 48,
+            "y": 371,
+            "w": 410,
+            "h": 39,
+            "text": "営業接点の減少",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                7
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 64,
+            "y": 414,
+            "w": 394,
+            "h": 58,
+            "text": "– 担当者の不足で訪問が減少",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 494,
+            "y": 151,
+            "w": 426,
+            "h": 42,
+            "text": "優先する打ち手",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 494,
+            "y1": 200,
+            "x2": 920,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 502,
+            "y": 266,
+            "w": 410,
+            "h": 39,
+            "text": "商品改善を優先",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                7
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 518,
+            "y": 309,
+            "w": 394,
+            "h": 58,
+            "text": "– 顧客の不満を調査し、品質を改善",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 502,
+            "y": 371,
+            "w": 410,
+            "h": 39,
+            "text": "営業活動を支援",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                7
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 518,
+            "y": 414,
+            "w": 394,
+            "h": 58,
+            "text": "– 重点顧客への訪問時間を確保",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "three-priorities",
+      "split": "dev",
+      "input": "改善の並列論点は品質、納期、コスト。品質は出荷前検査の標準化で不具合を予防する。納期は毎週の進捗確認で遅延を早く捉える。コストは設計レビューの徹底で手戻りを減らす。",
+      "required": [
+        "品質",
+        "納期",
+        "コスト",
+        "出荷前検査",
+        "毎週",
+        "設計レビュー"
+      ],
+      "design": {
+        "reason": "並列の三論点を同じ強さで置く。順序がないため矢印や番号を使わない。",
+        "checks": {
+          "family": "panels:3",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 3,
+        "title": "改善活動は品質・納期・コストで管理する",
+        "lead": "各論点に実行する活動を一つずつ対応させる",
+        "footnote": "架空の評価用データ",
+        "panels": [
+          {
+            "head": "品質",
+            "items": [
+              "**不具合を予防する**",
+              [
+                "出荷前検査を標準化"
+              ]
+            ]
+          },
+          {
+            "head": "納期",
+            "items": [
+              "**遅延を早く捉える**",
+              [
+                "進捗を毎週確認"
+              ]
+            ]
+          },
+          {
+            "head": "コスト",
+            "items": [
+              "**手戻りを減らす**",
+              [
+                "設計レビューを徹底"
+              ]
+            ]
+          }
+        ]
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "改善活動は品質・納期・コストで管理する",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "各論点に実行する活動を一つずつ対応させる",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 151,
+            "w": 274.6666666666667,
+            "h": 42,
+            "text": "品質",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 40,
+            "y1": 200,
+            "x2": 314.6666666666667,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 48,
+            "y": 256,
+            "w": 258.6666666666667,
+            "h": 39,
+            "text": "不具合を予防する",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                8
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 64,
+            "y": 299,
+            "w": 242.66666666666669,
+            "h": 58,
+            "text": "– 出荷前検査を標準化",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 342.6666666666667,
+            "y": 151,
+            "w": 274.6666666666667,
+            "h": 42,
+            "text": "納期",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 342.6666666666667,
+            "y1": 200,
+            "x2": 617.3333333333334,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350.6666666666667,
+            "y": 256,
+            "w": 258.6666666666667,
+            "h": 39,
+            "text": "遅延を早く捉える",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                8
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 366.6666666666667,
+            "y": 299,
+            "w": 242.66666666666669,
+            "h": 58,
+            "text": "– 進捗を毎週確認",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 645.3333333333334,
+            "y": 151,
+            "w": 274.6666666666667,
+            "h": 42,
+            "text": "コスト",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 645.3333333333334,
+            "y1": 200,
+            "x2": 920,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 653.3333333333334,
+            "y": 256,
+            "w": 258.6666666666667,
+            "h": 39,
+            "text": "手戻りを減らす",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                7
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 669.3333333333334,
+            "y": 299,
+            "w": 242.66666666666669,
+            "h": 58,
+            "text": "– 設計レビューを徹底",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "single-outline",
+      "split": "dev",
+      "input": "営業部門の申請業務について。変更点はメール受付を申請フォームに統一すること。ただし緊急案件は電話受付を継続する。開始条件は全担当者への説明完了。",
+      "required": [
+        "営業",
+        "メール",
+        "フォーム",
+        "緊急",
+        "電話",
+        "全担当者"
+      ],
+      "design": {
+        "reason": "文書の関係を短い太字ラベルで整理する。一つの文章領域で十分。",
+        "checks": {
+          "family": "cell",
+          "minBodyFont": 18,
+          "bold": true
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "申請窓口を統一し、緊急時の電話受付を残す",
+        "lead": "営業部門の申請業務を対象とする",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "cell",
+          "items": [
+            "**対象**：営業部門の申請業務",
+            "**変更点**：メール受付を申請フォームに統一",
+            "**例外**：緊急案件は電話受付を継続",
+            "**開始条件**：全担当者への説明を完了"
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "申請窓口を統一し、緊急時の電話受付を残す",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "営業部門の申請業務を対象とする",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 78,
+            "y": 174,
+            "w": 805,
+            "h": 52,
+            "text": "対象：営業部門の申請業務",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                2
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 78,
+            "y": 247,
+            "w": 805,
+            "h": 52,
+            "text": "変更点：メール受付を申請フォームに統一",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                3
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 78,
+            "y": 320,
+            "w": 805,
+            "h": 52,
+            "text": "例外：緊急案件は電話受付を継続",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                2
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 78,
+            "y": 393,
+            "w": 805,
+            "h": 52,
+            "text": "開始条件：全担当者への説明を完了",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                4
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "comparison-matrix",
+      "split": "dev",
+      "input": "3案を共通の観点で比較する。A案は効果が高い、費用は中程度、期間は短い。B案は効果が中程度、費用が高い、期間が中程度。C案は効果が低い、費用が低い、期間が長い。",
+      "required": [
+        "A案",
+        "B案",
+        "C案",
+        "効果",
+        "費用",
+        "期間",
+        "短い",
+        "長い"
+      ],
+      "design": {
+        "reason": "共通の観点で比較するため一枚のマトリクス。パネル見出しで包まない。",
+        "checks": {
+          "family": "table",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "三案の違いを効果・費用・期間で比較する",
+        "lead": "選定では重視する観点を先に決める",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "table",
+          "colHeaders": [
+            "効果",
+            "費用",
+            "期間"
+          ],
+          "rows": [
+            {
+              "head": "A案",
+              "cells": [
+                "高い",
+                "中程度",
+                "短い"
+              ]
+            },
+            {
+              "head": "B案",
+              "cells": [
+                "中程度",
+                "高い",
+                "中程度"
+              ]
+            },
+            {
+              "head": "C案",
+              "cells": [
+                "低い",
+                "低い",
+                "長い"
+              ]
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "三案の違いを効果・費用・期間で比較する",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "選定では重視する観点を先に決める",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "text": "効果",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "text": "費用",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "text": "期間",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 211,
+            "w": 134,
+            "h": 66,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 211,
+            "w": 134,
+            "h": 66,
+            "text": "A案",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 211,
+            "w": 246,
+            "h": 66,
+            "text": "高い",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 211,
+            "w": 246,
+            "h": 66,
+            "text": "中程度",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 211,
+            "w": 246,
+            "h": 66,
+            "text": "短い",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 182,
+            "y1": 281,
+            "x2": 920,
+            "y2": 281,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 285,
+            "w": 134,
+            "h": 66,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 285,
+            "w": 134,
+            "h": 66,
+            "text": "B案",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 285,
+            "w": 246,
+            "h": 66,
+            "text": "中程度",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 285,
+            "w": 246,
+            "h": 66,
+            "text": "高い",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 285,
+            "w": 246,
+            "h": 66,
+            "text": "中程度",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 182,
+            "y1": 355,
+            "x2": 920,
+            "y2": 355,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 359,
+            "w": 134,
+            "h": 66,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 359,
+            "w": 134,
+            "h": 66,
+            "text": "C案",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 359,
+            "w": 246,
+            "h": 66,
+            "text": "低い",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 359,
+            "w": 246,
+            "h": 66,
+            "text": "低い",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 359,
+            "w": 246,
+            "h": 66,
+            "text": "長い",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "dense-table",
+      "split": "dev",
+      "input": "案件一覧を表にする。案件A：担当営業、費用20万円、対応中。案件B：担当開発、費用30万円、完了。案件C：担当運用、費用40万円、対応中。案件D：担当企画、費用50万円、完了。案件E：担当営業、費用60万円、対応中。案件F：担当開発、費用70万円、完了。案件G：担当運用、費用80万円、対応中。案件H：担当企画、費用90万円、完了。",
+      "required": [
+        "案件A",
+        "20万円",
+        "案件B",
+        "30万円",
+        "案件C",
+        "40万円",
+        "案件D",
+        "50万円",
+        "案件E",
+        "60万円",
+        "案件F",
+        "70万円",
+        "案件G",
+        "80万円",
+        "案件H",
+        "90万円"
+      ],
+      "design": {
+        "reason": "多項目はネイティブTable。個々のテキストボックスを大量に作らない。",
+        "checks": {
+          "family": "ntable",
+          "nativeTable": true,
+          "minBodyFont": 16
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "八案件の担当・費用・状態を一覧にする",
+        "lead": "担当と進捗を同じ行で確認できるようにする",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "ntable",
+          "colHeaders": [
+            "担当",
+            "費用",
+            "状態"
+          ],
+          "rows": [
+            {
+              "head": "案件A",
+              "cells": [
+                "営業",
+                "20万円",
+                "対応中"
+              ]
+            },
+            {
+              "head": "案件B",
+              "cells": [
+                "開発",
+                "30万円",
+                "完了"
+              ]
+            },
+            {
+              "head": "案件C",
+              "cells": [
+                "運用",
+                "40万円",
+                "対応中"
+              ]
+            },
+            {
+              "head": "案件D",
+              "cells": [
+                "企画",
+                "50万円",
+                "完了"
+              ]
+            },
+            {
+              "head": "案件E",
+              "cells": [
+                "営業",
+                "60万円",
+                "対応中"
+              ]
+            },
+            {
+              "head": "案件F",
+              "cells": [
+                "開発",
+                "70万円",
+                "完了"
+              ]
+            },
+            {
+              "head": "案件G",
+              "cells": [
+                "運用",
+                "80万円",
+                "対応中"
+              ]
+            },
+            {
+              "head": "案件H",
+              "cells": [
+                "企画",
+                "90万円",
+                "完了"
+              ]
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "八案件の担当・費用・状態を一覧にする",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "担当と進捗を同じ行で確認できるようにする",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "table",
+            "x": 40,
+            "y": 157,
+            "w": 880,
+            "h": 306,
+            "colWidths": [
+              200,
+              220,
+              240,
+              220
+            ],
+            "rowHeights": [
+              34,
+              34,
+              34,
+              34,
+              34,
+              34,
+              34,
+              34,
+              34
+            ],
+            "cells": [
+              [
+                {
+                  "text": "案件",
+                  "fontSize": 18,
+                  "bold": true,
+                  "fill": "#EEEEEE",
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "担当",
+                  "fontSize": 18,
+                  "bold": true,
+                  "fill": "#EEEEEE",
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "費用",
+                  "fontSize": 18,
+                  "bold": true,
+                  "fill": "#EEEEEE",
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "状態",
+                  "fontSize": 18,
+                  "bold": true,
+                  "fill": "#EEEEEE",
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件A",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "営業",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "20万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "対応中",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件B",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "開発",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "30万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "完了",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件C",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "運用",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "40万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "対応中",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件D",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "企画",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "50万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "完了",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件E",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "営業",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "60万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "対応中",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件F",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "開発",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "70万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "完了",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件G",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "運用",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "80万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "対応中",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ],
+              [
+                {
+                  "text": "案件H",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "企画",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "90万円",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                },
+                {
+                  "text": "完了",
+                  "fontSize": 18,
+                  "bold": false,
+                  "fill": null,
+                  "color": "#252525",
+                  "align": "left"
+                }
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "gantt",
+      "split": "dev",
+      "input": "2027年4月から9月までの計画。要件整理は4〜5月、設計は5〜6月、開発は6〜8月、検証は8〜9月。",
+      "required": [
+        "2027",
+        "4月",
+        "5月",
+        "6月",
+        "7月",
+        "8月",
+        "9月",
+        "要件整理",
+        "開発",
+        "検証"
+      ],
+      "design": {
+        "reason": "工程と時間の関係だけを描く。下に体制や結論の箱を足さない。",
+        "checks": {
+          "family": "gantt",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "要件整理から検証までを上期に進める",
+        "lead": "工程を一部並行させ、9月までに検証を終える",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "gantt",
+          "groups": [
+            {
+              "text": "2027年 上期",
+              "span": 6
+            }
+          ],
+          "periods": [
+            "4月",
+            "5月",
+            "6月",
+            "7月",
+            "8月",
+            "9月"
+          ],
+          "tasks": [
+            {
+              "label": "要件整理",
+              "start": 0,
+              "end": 1
+            },
+            {
+              "label": "設計",
+              "start": 1,
+              "end": 2
+            },
+            {
+              "label": "開発",
+              "start": 2,
+              "end": 4
+            },
+            {
+              "label": "検証",
+              "start": 4,
+              "end": 5
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "要件整理から検証までを上期に進める",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "工程を一部並行させ、9月までに検証を終える",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 216,
+            "y": 144,
+            "w": 704,
+            "h": 32,
+            "text": "2027年 上期",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 216,
+            "y": 181,
+            "w": 117,
+            "h": 35,
+            "text": "4月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 333.3,
+            "y": 181,
+            "w": 117,
+            "h": 35,
+            "text": "5月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 450.6,
+            "y": 181,
+            "w": 117,
+            "h": 35,
+            "text": "6月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 567.9,
+            "y": 181,
+            "w": 117,
+            "h": 35,
+            "text": "7月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 685.2,
+            "y": 181,
+            "w": 117,
+            "h": 35,
+            "text": "8月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 802.5,
+            "y": 181,
+            "w": 117,
+            "h": 35,
+            "text": "9月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 40,
+            "y1": 221,
+            "x2": 920,
+            "y2": 221,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 242,
+            "w": 165,
+            "h": 36,
+            "text": "要件整理",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 216,
+            "y": 244,
+            "w": 222.6,
+            "h": 32,
+            "fill": "#B8B8B8",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 297,
+            "w": 165,
+            "h": 36,
+            "text": "設計",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 333.3,
+            "y": 299,
+            "w": 222.6,
+            "h": 32,
+            "fill": "#B8B8B8",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 352,
+            "w": 165,
+            "h": 36,
+            "text": "開発",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 450.6,
+            "y": 354,
+            "w": 339.9,
+            "h": 32,
+            "fill": "#B8B8B8",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 407,
+            "w": 165,
+            "h": 36,
+            "text": "検証",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 685.2,
+            "y": 409,
+            "w": 222.6,
+            "h": 32,
+            "fill": "#B8B8B8",
+            "text": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "bar-comparison",
+      "split": "dev",
+      "input": "地域別売上を比較する。国内120億円、北米90億円、欧州60億円、アジア45億円。",
+      "required": [
+        "国内",
+        "120",
+        "北米",
+        "90",
+        "欧州",
+        "60",
+        "アジア",
+        "45",
+        "億円"
+      ],
+      "design": {
+        "reason": "値の大小を同じ起点の棒で比較する。全て同色にして長さで伝える。",
+        "checks": {
+          "family": "bars",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "地域別売上は国内が最も大きい",
+        "lead": "国内の売上は120億円となった",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "bars",
+          "unit": "億円",
+          "items": [
+            {
+              "label": "国内",
+              "value": 120
+            },
+            {
+              "label": "北米",
+              "value": 90
+            },
+            {
+              "label": "欧州",
+              "value": 60
+            },
+            {
+              "label": "アジア",
+              "value": 45
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "地域別売上は国内が最も大きい",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "国内の売上は120億円となった",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 742,
+            "y": 143,
+            "w": 178,
+            "h": 25,
+            "text": "単位：億円",
+            "fontSize": 16,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "right",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 189,
+            "w": 130,
+            "h": 37,
+            "text": "国内",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 192,
+            "w": 625,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 822,
+            "y": 189,
+            "w": 80,
+            "h": 37,
+            "text": "120",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 257,
+            "w": 130,
+            "h": 37,
+            "text": "北米",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 260,
+            "w": 468.75,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 665.75,
+            "y": 257,
+            "w": 80,
+            "h": 37,
+            "text": "90",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 325,
+            "w": 130,
+            "h": 37,
+            "text": "欧州",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 328,
+            "w": 312.5,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 509.5,
+            "y": 325,
+            "w": 80,
+            "h": 37,
+            "text": "60",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 393,
+            "w": 130,
+            "h": 37,
+            "text": "アジア",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 396,
+            "w": 234.375,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 431.375,
+            "y": 393,
+            "w": 80,
+            "h": 37,
+            "text": "45",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "line-trend",
+      "split": "dev",
+      "input": "申請件数の月次推移。4月40件、5月55件、6月50件、7月70件、8月80件。",
+      "required": [
+        "4月",
+        "40",
+        "5月",
+        "55",
+        "6月",
+        "50",
+        "7月",
+        "70",
+        "8月",
+        "80"
+      ],
+      "design": {
+        "reason": "時系列は一本の折れ線。点の値と月を近接させる。",
+        "checks": {
+          "family": "line",
+          "minBodyFont": 16
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "申請件数は6月の減少後に増加した",
+        "lead": "8月は80件で、4月の40件から倍増した",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "line",
+          "unit": "件",
+          "labels": [
+            "4月",
+            "5月",
+            "6月",
+            "7月",
+            "8月"
+          ],
+          "series": [
+            {
+              "label": "申請件数",
+              "values": [
+                40,
+                55,
+                50,
+                70,
+                80
+              ]
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "申請件数は6月の減少後に増加した",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "8月は80件で、4月の40件から倍増した",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "line",
+            "x1": 112,
+            "y1": 446,
+            "x2": 878,
+            "y2": 446,
+            "color": "#DDDDDD",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 45,
+            "y": 432,
+            "w": 52,
+            "h": 28,
+            "text": "0",
+            "fontSize": 16,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "right",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 112,
+            "y1": 324,
+            "x2": 878,
+            "y2": 324,
+            "color": "#DDDDDD",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 45,
+            "y": 310,
+            "w": 52,
+            "h": 28,
+            "text": "40",
+            "fontSize": 16,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "right",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 112,
+            "y1": 202,
+            "x2": 878,
+            "y2": 202,
+            "color": "#DDDDDD",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 45,
+            "y": 188,
+            "w": 52,
+            "h": 28,
+            "text": "80",
+            "fontSize": 16,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "right",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 42,
+            "y": 148,
+            "w": 120,
+            "h": 28,
+            "text": "単位：件",
+            "fontSize": 16,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "ellipse",
+            "x": 126,
+            "y": 320,
+            "w": 8,
+            "h": 8,
+            "fill": "#252525",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 96,
+            "y": 288,
+            "w": 68,
+            "h": 28,
+            "text": "40",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 88,
+            "y": 460,
+            "w": 84,
+            "h": 30,
+            "text": "4月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 130,
+            "y1": 324,
+            "x2": 304,
+            "y2": 278.25,
+            "color": "#252525",
+            "weight": 2
+          },
+          {
+            "kind": "rect",
+            "shape": "ellipse",
+            "x": 300,
+            "y": 274.25,
+            "w": 8,
+            "h": 8,
+            "fill": "#252525",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 270,
+            "y": 242.25,
+            "w": 68,
+            "h": 28,
+            "text": "55",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 262,
+            "y": 460,
+            "w": 84,
+            "h": 30,
+            "text": "5月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 304,
+            "y1": 278.25,
+            "x2": 478,
+            "y2": 293.5,
+            "color": "#252525",
+            "weight": 2
+          },
+          {
+            "kind": "rect",
+            "shape": "ellipse",
+            "x": 474,
+            "y": 289.5,
+            "w": 8,
+            "h": 8,
+            "fill": "#252525",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 444,
+            "y": 257.5,
+            "w": 68,
+            "h": 28,
+            "text": "50",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 436,
+            "y": 460,
+            "w": 84,
+            "h": 30,
+            "text": "6月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 478,
+            "y1": 293.5,
+            "x2": 652,
+            "y2": 232.5,
+            "color": "#252525",
+            "weight": 2
+          },
+          {
+            "kind": "rect",
+            "shape": "ellipse",
+            "x": 648,
+            "y": 228.5,
+            "w": 8,
+            "h": 8,
+            "fill": "#252525",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 618,
+            "y": 196.5,
+            "w": 68,
+            "h": 28,
+            "text": "70",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 610,
+            "y": 460,
+            "w": 84,
+            "h": 30,
+            "text": "7月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 652,
+            "y1": 232.5,
+            "x2": 826,
+            "y2": 202,
+            "color": "#252525",
+            "weight": 2
+          },
+          {
+            "kind": "rect",
+            "shape": "ellipse",
+            "x": 822,
+            "y": 198,
+            "w": 8,
+            "h": 8,
+            "fill": "#252525",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 792,
+            "y": 166,
+            "w": 68,
+            "h": 28,
+            "text": "80",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 784,
+            "y": 460,
+            "w": 84,
+            "h": 30,
+            "text": "8月",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "organization",
+      "split": "dev",
+      "input": "責任者が全体判断を担う。責任者の直下に企画、開発、運用を置く。企画は要件整理、開発は実装、運用は受入と監視を担当する。",
+      "required": [
+        "責任者",
+        "全体判断",
+        "企画",
+        "要件整理",
+        "開発",
+        "実装",
+        "運用",
+        "受入",
+        "監視"
+      ],
+      "design": {
+        "reason": "線は報告関係だけを表す。根の箱を黒くして優先に見せない。",
+        "checks": {
+          "family": "org",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "責任者の下に企画・開発・運用を置く",
+        "lead": "各チームの役割を明確にする",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "org",
+          "root": {
+            "label": "責任者",
+            "sub": "全体判断",
+            "children": [
+              {
+                "label": "企画",
+                "sub": "要件整理"
+              },
+              {
+                "label": "開発",
+                "sub": "実装"
+              },
+              {
+                "label": "運用",
+                "sub": "受入・監視"
+              }
+            ]
+          }
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "責任者の下に企画・開発・運用を置く",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "各チームの役割を明確にする",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "line",
+            "x1": 480,
+            "y1": 236,
+            "x2": 480,
+            "y2": 284,
+            "color": "#666666",
+            "weight": 1.5
+          },
+          {
+            "kind": "line",
+            "x1": 180,
+            "y1": 284,
+            "x2": 780,
+            "y2": 284,
+            "color": "#666666",
+            "weight": 1.5
+          },
+          {
+            "kind": "line",
+            "x1": 180,
+            "y1": 284,
+            "x2": 180,
+            "y2": 332,
+            "color": "#666666",
+            "weight": 1.5
+          },
+          {
+            "kind": "line",
+            "x1": 480,
+            "y1": 284,
+            "x2": 480,
+            "y2": 332,
+            "color": "#666666",
+            "weight": 1.5
+          },
+          {
+            "kind": "line",
+            "x1": 780,
+            "y1": 284,
+            "x2": 780,
+            "y2": 332,
+            "color": "#666666",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350,
+            "y": 157,
+            "w": 260,
+            "h": 80,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350,
+            "y": 166,
+            "w": 260,
+            "h": 33,
+            "text": "責任者",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350,
+            "y": 203,
+            "w": 260,
+            "h": 25,
+            "text": "全体判断",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 50,
+            "y": 332,
+            "w": 260,
+            "h": 100,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 50,
+            "y": 347,
+            "w": 260,
+            "h": 33,
+            "text": "企画",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 50,
+            "y": 388,
+            "w": 260,
+            "h": 30,
+            "text": "要件整理",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350,
+            "y": 332,
+            "w": 260,
+            "h": 100,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350,
+            "y": 347,
+            "w": 260,
+            "h": 33,
+            "text": "開発",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 350,
+            "y": 388,
+            "w": 260,
+            "h": 30,
+            "text": "実装",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 650,
+            "y": 332,
+            "w": 260,
+            "h": 100,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 650,
+            "y": 347,
+            "w": 260,
+            "h": 33,
+            "text": "運用",
+            "fontSize": 24,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 650,
+            "y": 388,
+            "w": 260,
+            "h": 30,
+            "text": "受入・監視",
+            "fontSize": 20,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "pyramid",
+      "split": "dev",
+      "input": "上から方針、計画、実行の3層。方針では経営会議が重点領域を決める。計画では部門が施策と担当を定める。実行では現場が施策を進め、結果を報告する。ピラミッドと同じ層の右側に説明を置く。",
+      "required": [
+        "方針",
+        "経営会議",
+        "計画",
+        "部門",
+        "担当",
+        "実行",
+        "現場",
+        "結果"
+      ],
+      "design": {
+        "reason": "左の階層形状と右の説明を同じ高さで対応づける。独立した二つの図にしない。",
+        "checks": {
+          "family": "pyramid",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "方針を計画に落とし、現場で実行する",
+        "lead": "各層の役割を対応させる",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "pyramid",
+          "layers": [
+            {
+              "head": "方針",
+              "text": "経営会議が重点領域を決める"
+            },
+            {
+              "head": "計画",
+              "text": "部門が施策と担当を定める"
+            },
+            {
+              "head": "実行",
+              "text": "現場が施策を進め、結果を報告する"
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "方針を計画に落とし、現場で実行する",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "各層の役割を対応させる",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "triangle",
+            "x": 185,
+            "y": 159,
+            "w": 150,
+            "h": 92,
+            "fill": "#DDDDDD",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 130,
+            "y": 195,
+            "w": 260,
+            "h": 48,
+            "text": "方針",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 450,
+            "y1": 209,
+            "x2": 488,
+            "y2": 209,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 510,
+            "y": 171,
+            "w": 400,
+            "h": 76,
+            "text": "経営会議が重点領域を決める",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "trapezoid",
+            "x": 130,
+            "y": 263,
+            "w": 260,
+            "h": 92,
+            "fill": "#BBBBBB",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 130,
+            "y": 281,
+            "w": 260,
+            "h": 48,
+            "text": "計画",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 450,
+            "y1": 313,
+            "x2": 488,
+            "y2": 313,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 510,
+            "y": 275,
+            "w": 400,
+            "h": 76,
+            "text": "部門が施策と担当を定める",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "trapezoid",
+            "x": 75,
+            "y": 367,
+            "w": 370,
+            "h": 92,
+            "fill": "#999999",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 130,
+            "y": 385,
+            "w": 260,
+            "h": 48,
+            "text": "実行",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 450,
+            "y1": 417,
+            "x2": 488,
+            "y2": 417,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 510,
+            "y": 379,
+            "w": 400,
+            "h": 76,
+            "text": "現場が施策を進め、結果を報告する",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "holdout-process-four",
+      "split": "holdout",
+      "input": "受付で申請内容を確認し、審査で基準への適合を調べる。その後、承認で責任者が可否を決め、通知で申請者へ結果を伝える。",
+      "required": [
+        "受付",
+        "申請内容",
+        "審査",
+        "基準",
+        "承認",
+        "責任者",
+        "通知",
+        "申請者"
+      ],
+      "design": {
+        "reason": "未使用の四工程でも方向と図像を同じ原則で表す。",
+        "checks": {
+          "family": "sequence",
+          "icons": 4,
+          "horizontal": true,
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "申請は受付から通知まで四工程で扱う",
+        "lead": "可否の判断を終えてから申請者へ結果を伝える",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "sequence",
+          "steps": [
+            {
+              "head": "受付",
+              "text": "申請内容を確認する",
+              "icon": "clipboard-check"
+            },
+            {
+              "head": "審査",
+              "text": "基準への適合を調べる",
+              "icon": "search"
+            },
+            {
+              "head": "承認",
+              "text": "責任者が可否を決める",
+              "icon": "user-check"
+            },
+            {
+              "head": "通知",
+              "text": "申請者へ結果を伝える",
+              "icon": "mail"
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "申請は受付から通知まで四工程で扱う",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "可否の判断を終えてから申請者へ結果を伝える",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 40,
+            "y": 178,
+            "w": 208,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 46,
+            "y": 178,
+            "w": 178,
+            "h": 52,
+            "text": "01  受付",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "clipboard-check",
+            "x": 100,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 52,
+            "y": 374,
+            "w": 184,
+            "h": 60,
+            "text": "申請内容を確認する",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 264,
+            "y": 178,
+            "w": 208,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 270,
+            "y": 178,
+            "w": 178,
+            "h": 52,
+            "text": "02  審査",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "search",
+            "x": 324,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 276,
+            "y": 374,
+            "w": 184,
+            "h": 60,
+            "text": "基準への適合を調べる",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 488,
+            "y": 178,
+            "w": 208,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 494,
+            "y": 178,
+            "w": 178,
+            "h": 52,
+            "text": "03  承認",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "user-check",
+            "x": 548,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 500,
+            "y": 374,
+            "w": 184,
+            "h": 60,
+            "text": "責任者が可否を決める",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "homePlate",
+            "x": 712,
+            "y": 178,
+            "w": 208,
+            "h": 52,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 718,
+            "y": 178,
+            "w": 178,
+            "h": 52,
+            "text": "04  通知",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "image",
+            "name": "mail",
+            "x": 772,
+            "y": 262,
+            "w": 88,
+            "h": 88,
+            "color": "#252525"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 724,
+            "y": 374,
+            "w": 184,
+            "h": 60,
+            "text": "申請者へ結果を伝える",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "holdout-before-after",
+      "split": "holdout",
+      "input": "現状は窓口が分散して問い合わせ先が分かりにくく、履歴が未共有なので同じ説明を繰り返す。変更後は共通フォームに窓口を一本化し、対応記録を共有して検索できるようにする。",
+      "required": [
+        "窓口",
+        "分散",
+        "履歴",
+        "共有",
+        "共通フォーム",
+        "検索"
+      ],
+      "design": {
+        "reason": "原因・打ち手以外の対立でも等価な二パネルを保つ。",
+        "checks": {
+          "family": "panels:2",
+          "minBodyFont": 18,
+          "bold": true
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 2,
+        "title": "窓口と対応履歴を共通化する",
+        "lead": "問い合わせ先の迷いと説明の繰り返しを減らす",
+        "footnote": "架空の評価用データ",
+        "panels": [
+          {
+            "head": "現状",
+            "items": [
+              "**窓口が分散**",
+              [
+                "問い合わせ先が分かりにくい"
+              ],
+              "**履歴が未共有**",
+              [
+                "同じ説明を繰り返している"
+              ]
+            ]
+          },
+          {
+            "head": "変更後",
+            "items": [
+              "**窓口を一本化**",
+              [
+                "共通フォームで受け付ける"
+              ],
+              "**履歴を共有**",
+              [
+                "対応記録を検索できるようにする"
+              ]
+            ]
+          }
+        ]
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "窓口と対応履歴を共通化する",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "問い合わせ先の迷いと説明の繰り返しを減らす",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 151,
+            "w": 426,
+            "h": 42,
+            "text": "現状",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 40,
+            "y1": 200,
+            "x2": 466,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 48,
+            "y": 266,
+            "w": 410,
+            "h": 39,
+            "text": "窓口が分散",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                5
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 64,
+            "y": 309,
+            "w": 394,
+            "h": 58,
+            "text": "– 問い合わせ先が分かりにくい",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 48,
+            "y": 371,
+            "w": 410,
+            "h": 39,
+            "text": "履歴が未共有",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                6
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 64,
+            "y": 414,
+            "w": 394,
+            "h": 58,
+            "text": "– 同じ説明を繰り返している",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 494,
+            "y": 151,
+            "w": 426,
+            "h": 42,
+            "text": "変更後",
+            "fontSize": 25,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "line",
+            "x1": 494,
+            "y1": 200,
+            "x2": 920,
+            "y2": 200,
+            "color": "#252525",
+            "weight": 1.5
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 502,
+            "y": 266,
+            "w": 410,
+            "h": 39,
+            "text": "窓口を一本化",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                6
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 518,
+            "y": 309,
+            "w": 394,
+            "h": 58,
+            "text": "– 共通フォームで受け付ける",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 502,
+            "y": 371,
+            "w": 410,
+            "h": 39,
+            "text": "履歴を共有",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [
+              [
+                0,
+                5
+              ]
+            ]
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 518,
+            "y": 414,
+            "w": 394,
+            "h": 58,
+            "text": "– 対応記録を検索できるようにする",
+            "fontSize": 19,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "holdout-bars",
+      "split": "holdout",
+      "input": "部門別の工数は製造72時間、物流48時間、販売36時間、管理24時間。",
+      "required": [
+        "製造",
+        "72",
+        "物流",
+        "48",
+        "販売",
+        "36",
+        "管理",
+        "24"
+      ],
+      "design": {
+        "reason": "単位と題材が変わっても棒の尺度を保持する。",
+        "checks": {
+          "family": "bars",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "部門別工数は製造が最も大きい",
+        "lead": "製造に72時間を要している",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "bars",
+          "unit": "時間",
+          "items": [
+            {
+              "label": "製造",
+              "value": 72
+            },
+            {
+              "label": "物流",
+              "value": 48
+            },
+            {
+              "label": "販売",
+              "value": 36
+            },
+            {
+              "label": "管理",
+              "value": 24
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "部門別工数は製造が最も大きい",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "製造に72時間を要している",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 742,
+            "y": 143,
+            "w": 178,
+            "h": 25,
+            "text": "単位：時間",
+            "fontSize": 16,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "right",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 189,
+            "w": 130,
+            "h": 37,
+            "text": "製造",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 192,
+            "w": 625,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 822,
+            "y": 189,
+            "w": 80,
+            "h": 37,
+            "text": "72",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 257,
+            "w": 130,
+            "h": 37,
+            "text": "物流",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 260,
+            "w": 416.6666666666667,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 613.6666666666667,
+            "y": 257,
+            "w": 80,
+            "h": 37,
+            "text": "48",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 325,
+            "w": 130,
+            "h": 37,
+            "text": "販売",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 328,
+            "w": 312.5,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 509.5,
+            "y": 325,
+            "w": 80,
+            "h": 37,
+            "text": "36",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 393,
+            "w": 130,
+            "h": 37,
+            "text": "管理",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 185,
+            "y": 396,
+            "w": 208.33333333333334,
+            "h": 31,
+            "fill": "#777777",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 405.33333333333337,
+            "y": 393,
+            "w": 80,
+            "h": 37,
+            "text": "24",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "holdout-matrix",
+      "split": "holdout",
+      "input": "拠点別の人員、座席、会議室を比較する。東拠点は12人、24席、6室。西拠点は18人、30席、8室。南拠点は9人、15席、3室。",
+      "required": [
+        "東拠点",
+        "12人",
+        "24席",
+        "6室",
+        "西拠点",
+        "18人",
+        "30席",
+        "8室",
+        "南拠点",
+        "9人",
+        "15席",
+        "3室"
+      ],
+      "design": {
+        "reason": "定性比較で学んだ行列配置を数値と単位にも適用する。",
+        "checks": {
+          "family": "table",
+          "minBodyFont": 18
+        },
+        "oneMainVisual": true
+      },
+      "expected": {
+        "panelCount": 1,
+        "title": "拠点別の人員と設備を一覧で比較する",
+        "lead": "西拠点は人員・座席・会議室がいずれも最多",
+        "footnote": "架空の評価用データ",
+        "body": {
+          "type": "table",
+          "colHeaders": [
+            "人員",
+            "座席",
+            "会議室"
+          ],
+          "rows": [
+            {
+              "head": "東拠点",
+              "cells": [
+                "12人",
+                "24席",
+                "6室"
+              ]
+            },
+            {
+              "head": "西拠点",
+              "cells": [
+                "18人",
+                "30席",
+                "8室"
+              ]
+            },
+            {
+              "head": "南拠点",
+              "cells": [
+                "9人",
+                "15席",
+                "3室"
+              ]
+            }
+          ]
+        }
+      },
+      "golden": {
+        "version": 1,
+        "width": 960,
+        "height": 540,
+        "prims": [
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 27,
+            "w": 880,
+            "h": 49,
+            "text": "拠点別の人員と設備を一覧で比較する",
+            "fontSize": 30,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true,
+            "role": "title"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 86,
+            "w": 880,
+            "h": 38,
+            "text": "西拠点は人員・座席・会議室がいずれも最多",
+            "fontSize": 18,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "lead"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 509,
+            "w": 800,
+            "h": 18,
+            "text": "架空の評価用データ",
+            "fontSize": 10,
+            "fontName": "Yu Gothic",
+            "color": "#666666",
+            "pad": 0,
+            "wrap": true,
+            "align": "left",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "role": "footnote"
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "text": "人員",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "text": "座席",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 155,
+            "w": 243,
+            "h": 48,
+            "text": "会議室",
+            "fontSize": 21,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 211,
+            "w": 134,
+            "h": 66,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 211,
+            "w": 134,
+            "h": 66,
+            "text": "東拠点",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 211,
+            "w": 246,
+            "h": 66,
+            "text": "12人",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 211,
+            "w": 246,
+            "h": 66,
+            "text": "24席",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 211,
+            "w": 246,
+            "h": 66,
+            "text": "6室",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 182,
+            "y1": 281,
+            "x2": 920,
+            "y2": 281,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 285,
+            "w": 134,
+            "h": 66,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 285,
+            "w": 134,
+            "h": 66,
+            "text": "西拠点",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 285,
+            "w": 246,
+            "h": 66,
+            "text": "18人",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 285,
+            "w": 246,
+            "h": 66,
+            "text": "30席",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 285,
+            "w": 246,
+            "h": 66,
+            "text": "8室",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "line",
+            "x1": 182,
+            "y1": 355,
+            "x2": 920,
+            "y2": 355,
+            "color": "#BBBBBB",
+            "weight": 1
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 359,
+            "w": 134,
+            "h": 66,
+            "fill": "#EEEEEE",
+            "text": ""
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 40,
+            "y": 359,
+            "w": 134,
+            "h": 66,
+            "text": "南拠点",
+            "fontSize": 23,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": [],
+            "bold": true
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 182,
+            "y": 359,
+            "w": 246,
+            "h": 66,
+            "text": "9人",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 428,
+            "y": 359,
+            "w": 246,
+            "h": 66,
+            "text": "15席",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          },
+          {
+            "kind": "rect",
+            "shape": "rect",
+            "x": 674,
+            "y": 359,
+            "w": 246,
+            "h": 66,
+            "text": "3室",
+            "fontSize": 22,
+            "fontName": "Yu Gothic",
+            "color": "#252525",
+            "pad": 0,
+            "wrap": true,
+            "align": "center",
+            "valign": "middle",
+            "autofit": "none",
+            "boldRanges": []
+          }
+        ]
+      }
+    }
+  ]
+}
