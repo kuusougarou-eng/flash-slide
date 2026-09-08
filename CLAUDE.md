@@ -197,6 +197,13 @@
   (生成物は選択スライドの直後に入り、選択が新スライドへ移る)。
 - 比較シート: `python scripts/compare-sheet.py --per 4`(debug/before/t-*.png と debug/t-*.png を左右に並べる)。
 
+## ゴールデン再現エンジン(2026-09-08 夜。server/golden-native/author)
+- 正本 `docs/golden/golden.pptx`(32 枚)の生成器 `scripts/make-golden.py` を JS に移植したもの。**型を足す/直すときは Python と `layouts*.js`・`samples*.js` を同時に更新**し、
+  `node scripts/golden-author-verify.js` で 32/32 XML 同値を保つ(実描画は `node scripts/golden-author-export.js` → `golden-native-export.ps1 -Source authored -Out authored-rendered` → `golden-native-compare.py authored-rendered authored-visual-report.json`)。
+- LLM は `{layout, data}` を 1 回で返す(`author/generate.js`)。幾何(注釈線・today・列幅)は LLM に決めさせず `sanitize` で落とす。
+- 経路: `/api/generate-native` → ペインの「エンジン: ゴールデン」→ `insertCompiled`。開発トリガは `engine:"native"`。新規入力の実験は `node scripts/golden-author-llm.js test/golden-author/inputs.json`。
+- 詳細と実測は `docs/architecture/golden-native.md`。
+
 ## やってはいけない
 - 既定レイアウトをテンプレ固定に戻す/レイアウト種別を静的分岐で限定する(自由度を下げる)。
 - 箱全体を黒く塗って強調する。箱フローの一部だけを塗る。下線付きボックスの幅を不揃いにする。
