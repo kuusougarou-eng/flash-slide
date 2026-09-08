@@ -26,7 +26,8 @@
  *   { rows:[Node…], weights?, gap? } | { cols:[Node…], weights?, gap? }
  *   { type:"cell", head?, text?, items?:[string | string[]…], shape?:"rect"|"chevron"|"home", fill?:"none"|"light"|"dark"|"tint",
  *     highlight?, icon?, align?, size?:"large", level? }
- *   { type:"table", corner?, colHeaders:[…], colGroups?:[{text, span}], rows:[{head, cells:[string | {text, fill?, highlight?}], highlight?}],
+ *   { type:"table", corner?, colHeaders:[…], colGroups?:[{text, span}], rowGroups?:[{text, span}],
+ *     rows:[{head, cells:[string | {text?, items?:[string…], fill?, highlight?}], highlight?}],
  *     headShape?:"chevron", highlightCol?, axes?:{x, y} }
  *   { type:"bars"|"column"|"line"|"stacked"|"kpi", … }   … Figure(数値)
  *   { type:"ntable", … table と同じ }                    … Figure: PPT ネイティブ表(密な数表向け)
@@ -1175,10 +1176,14 @@
     const longestHead = hasRowHead ? Math.max.apply(null, [0].concat(rows.map((rw) => measure(stripBold(rw.head || ""), FONT.body)), [measure(stripBold(node.corner || ""), FONT.body)])) : 0;
     const numW = node.numbered ? measure("00", FONT.body) + SPACE.cellPad * 2 + 2 : 0;
     const rowHeadW = hasRowHead ? Math.max(w * 0.15, Math.min(w * 0.34, longestHead + SPACE.cellPad * 2 + 12 + numW)) : 0;
+    // 行見出しのグループ化(2 階層の行見出し)。colGroups(列方向)と同じ {text,span} 形式を行方向に転用する
+    const hasRowGroups = Array.isArray(node.rowGroups) && node.rowGroups.length > 0;
+    const longestGroup = hasRowGroups ? Math.max.apply(null, [0].concat(node.rowGroups.map((g) => measure(stripBold(g.text || ""), FONT.body)))) : 0;
+    const groupW = hasRowGroups ? Math.max(w * 0.08, Math.min(w * 0.22, longestGroup + SPACE.cellPad * 2 + 12)) : 0;
     const axisW = node.axes && node.axes.y ? FONT.body * FONT.lineHeight + 6 : 0;
     const axisH = node.axes && node.axes.x ? FONT.body * FONT.lineHeight + 6 : 0;
-    const gridX = axisW;
-    const gridW = w - axisW;
+    const gridX = axisW + groupW;
+    const gridW = w - axisW - groupW;
     // 列幅は内容量に比例させる(等分だと「稼働まで」のような短い列が広く、説明列が狭くなる)
     const cellPad = SPACE.cellPad;
     const contentW = gridW - rowHeadW;
@@ -1253,7 +1258,7 @@
     // 収まらないときは行高さを比例縮小して領域内に収める。余るときは行を間延びさせず(自然高さの +60% まで)、残りは下の余白にする
     const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + (node._composition ? extra / Math.max(1, rows.length) : Math.min(extra / Math.max(1, rows.length), h * 0.6)));
     const hasFills = rows.some((rw) => (rw.cells || []).some((cl) => cl && typeof cl === "object" && cl.fill));
-    return { natural, colHeaders, rows, ncols, hasRowHead, chevron, rowHeadW, colW, colWs, colX, cellPad, groupH, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
+    return { natural, colHeaders, rows, ncols, hasRowHead, chevron, rowHeadW, colW, colWs, colX, cellPad, groupH, groupW, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
   }
 
   LEAF.table = function (node, r, c) {
@@ -1302,12 +1307,38 @@
         if (hl && !headDark) c.prims.push(rect(cx, y, m.colWs[j], m.headH - 2, { fill: P.accentTint }));
         // 列見出しは中身の揃えに合わせる(数値列なら右、それ以外は左)。見出しだけ中央にしない
         const colAlign = colNumeric[j] ? "right" : "left";
-        c.prims.push(textBox(cx, y, m.colWs[j], m.headH - 2, stripBold(h), { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : hl ? P.accent : P.text, align: colAlign, valign: headDark || node._composition ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
+        c.prims.push(
+          textBox(cx, y, m.colWs[j], m.headH - 2, stripBold(h), {
+            fontSize: headFs,
+            bold: true,
+            color: headDark ? P.textOnDark : hl ? P.accent : P.text,
+            align: colAlign,
+            valign: headDark || node._composition ? "middle" : "bottom",
+            pad: m.cellPad,
+            autofit: "none",
+            role: "matrixcell",
+          })
+        );
       });
       // 列見出しの罫: パネル先頭の格子なら太い罫(この行がパネル見出しを兼ねる)、単体の格子なら細い罫、パネルの中では引かない
       if (node._panelHead && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.fillDark, RULE_THICK)); // 隣のパネル見出し罫(h-2)と同じ y
       else if (!node._inPanel && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.line, 1.2));
       y += m.headH;
+    }
+    // 行見出しのグループ帯(2 階層の行見出し): 対象の行の高さを合計した 1 個の箱に、グループ名を縦横中央で置く
+    if (m.groupW) {
+      const groupX = r.x + m.axisW;
+      let gy = y,
+        gi = 0;
+      for (const g of node.rowGroups) {
+        const span = Math.max(1, Math.min(m.rows.length - gi, Number(g.span) || 1));
+        const gh = m.rowHeights.slice(gi, gi + span).reduce((a, b) => a + b, 0);
+        gi += span;
+        if (gh <= 0) continue;
+        if (node.rowHeadFill !== "none") c.prims.push(rect(groupX, gy + 2, m.groupW - 4, gh - 4, { fill: P.fillLight }));
+        c.prims.push(textBox(groupX, gy, m.groupW - 4, gh, stripBold(g.text || ""), { fontSize: m.fs, bold: true, color: P.text, align: "center", valign: "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
+        gy += gh;
+      }
     }
     // 本文行
     m.rows.forEach((rw, i) => {
@@ -1940,10 +1971,20 @@
     } while (text !== prior);
     return text;
   }
+  /** note が title / lead の言い換えなら true。完全一致・部分一致に加え、内容語の重なりでも判定する
+   *  (「表の下にリード文と同じことが書いてある」状態は、言い換えられていても読み手には重複でしかない) */
   function repeatsSummary(note, summary) {
     const key = (v) => stripBold(String(v || "")).normalize("NFKC").replace(/[\s、。，,.：:！!？?]/g, "").replace(/(?:である|です|すること)$/u, "");
     const a = key(note), b = key(summary);
-    return !!a && (a === b || (a.length >= 12 && b.includes(a)));
+    if (!a) return false;
+    if (a === b || (a.length >= 12 && b.includes(a))) return true;
+    // 内容語(2 文字以上の漢字・カタカナ・英数の連なり)の重なりが 6 割を超えたら言い換えとみなす
+    const words = (v) => new Set((String(v || "").match(/[一-龥ァ-ヶA-Za-z0-9][一-龥ァ-ヶーA-Za-z0-9.,%]+/g) || []).filter((w) => w.length >= 2));
+    const wa = words(note), wb = words(summary);
+    if (wa.size < 3) return false;
+    let hit = 0;
+    wa.forEach((w) => { if (wb.has(w)) hit++; });
+    return hit / wa.size >= 0.6;
   }
   function compositionKey(specs) {
     return (Array.isArray(specs) ? specs : [specs]).map((s) => {
@@ -2996,7 +3037,8 @@
       const fill = String(x.fill || "").toLowerCase();
       if (FILLS.includes(fill) && fill !== "none") o.fill = fill;
       if (x.highlight) o.highlight = true;
-      return o.fill || o.highlight ? o : o.text;
+      if (Array.isArray(x.items) && x.items.length) o.items = x.items.map(str);
+      return o.fill || o.highlight || o.items ? o : o.text;
     };
     const out = {
       type,
@@ -3012,6 +3054,7 @@
       if (n.numbered === true) out.numbered = true;
       if (n.headShape === "chevron" || n.headShape === "chevrons") out.headShape = "chevron";
       if (Array.isArray(n.colGroups) && n.colGroups.length) out.colGroups = n.colGroups.map((g) => ({ text: str(g.text || g.head), span: Math.max(1, Number(g.span) || 1) }));
+      if (Array.isArray(n.rowGroups) && n.rowGroups.length) out.rowGroups = n.rowGroups.map((g) => ({ text: str(g.text || g.head), span: Math.max(1, Number(g.span) || 1) }));
       // 軸ラベル(axes)は 2×2 の格子にだけ意味がある。行や列が 2 でない格子に付いてきたら外す(回転ラベルが行名に重なる)
       if (n.axes && (n.axes.x || n.axes.y) && out.rows.length === 2 && (out.colHeaders || []).length <= 2 && out.rows.every((rw) => (rw.cells || []).length === 2)) out.axes = { x: str(n.axes.x), y: str(n.axes.y) };
     }
