@@ -387,8 +387,9 @@
     // --- 本文(グリッド) ---
     const body = spec.body && (spec.body.rows || spec.body.cols || spec.body.type) ? spec.body : { type: "cell", text: "" };
     /** 本文を 1 回描く。bump>0 なら文字階層をその分大きくして描く(版面充填) */
-    const renderBodyPass = (bump) => {
+    const renderBodyPass = (bump, listGap) => {
       const saved = Object.assign({}, FONT);
+      LIST_GAP = listGap || 0; // 箇条書きの項目間隔はこのパスの間だけ有効(部品側からは書き換えない)
       if (bump) {
         FONT.body += bump;
         FONT.min += bump;
@@ -410,6 +411,7 @@
       }
       const fonts = { body: FONT.body, head: FONT.head, min: FONT.min, floor: FONT.floor };
       Object.assign(FONT, saved);
+      LIST_GAP = 0;
       let bottom = bodyRect.y,
         alloc = bodyRect.y;
       const bands = []; // 実際に何かが見えている縦の区間(重なりは後で畳む)
@@ -454,7 +456,7 @@
       });
       // ガントは描画側で行数に応じて自前で文字を縮めるので、その警告では全体を縮めない
       const bad = rowsOver || wr.some((w) => /shrunk|too small|too wide|failed|table overflow|sequence overflow|note too large/.test(w)) || alloc > bodyRect.y + bodyRect.h + 1;
-      return { prims: pr, warnings: wr, fonts, fill, bad, bump };
+      return { prims: pr, warnings: wr, fonts, fill, bad, bump, listGap: listGap || 0 };
     };
     let pass = renderBodyPass(0);
     if (pass.bad && !options.noGrow) {
@@ -477,6 +479,15 @@
         if (next.bad || (!spec.compositionVersion && next.fill > 0.98)) break;
         pass = next;
         if (!spec.compositionVersion && pass.fill >= 0.8) break;
+      }
+    }
+    // 行間: 文字を大きくしてもまだ版面が余るときだけ、箇条書きの項目間隔を広げる。
+    // 広げる量はスライドで 1 つ(部品ごとに自分の枠の余りを見て決めない)。溢れたら手前の段に戻す
+    if (!pass.bad && pass.fill < 0.7 && !options.noGrow) {
+      for (const g of [3, 6]) {
+        const next = renderBodyPass(pass.bump, g);
+        if (next.bad) break;
+        pass = next;
       }
     }
     const bodyStart = prims.length;
@@ -1436,9 +1447,11 @@
           // 実機で確認済み)。疑似マーカーは使わず、箇条書き側は PowerPoint 本来の bulletFormat のまま
           const headText = lines[0];
           const listText = lines.slice(1).map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n");
-          const vPad = Math.min(cellPad, 8) * 2;
+          // 見出しの箱は上マージンぶんだけ高くする(下マージンまで数えると、見出しと 1 項目目の間が
+          // 空行 1 つぶん空いて「箇条書きの前で改行している」ように見える。前置きは箇条書き側の上マージンだけで足りる)
+          const vPad = Math.min(cellPad, 8);
           const headH = textHeight(stripBold(headText), cw - cellPad * 2, m.fs) + vPad;
-          const listH = textHeight(listText, cw - cellPad * 2 - BULLET_INDENT, m.fs) + vPad;
+          const listH = textHeight(listText, cw - cellPad * 2 - BULLET_INDENT, m.fs) + vPad * 2;
           const top = y + Math.max(0, (rh - headH - listH) / 2);
           c.prims.push(textBox(cx, top, cw, headH, headText, Object.assign({}, cellOpt, { valign: "top", bullets: false })));
           c.prims.push(textBox(cx, top + headH, cw, Math.max(listH, y + rh - top - headH), listText, Object.assign({}, cellOpt, { valign: "top", bullets: true })));
@@ -1704,13 +1717,29 @@
     if (!root) return;
     const depth = orgDepth(root), leaves = orgLeaves(root);
     const hGap = 16, vGap = 8;
-    const colW = (r.w - hGap * (depth - 1)) / depth;
+    // 列幅は等分ではなく、その階層の一番長いラベルから決める。余りは末端(内容量が一番多い列)へ回す
+    const perLevel = [];
+    (function walkLv(nd, lv) {
+      (perLevel[lv] = perLevel[lv] || []).push(nd);
+      (nd.children || []).forEach((k) => walkLv(k, lv + 1));
+    })(root, 0);
+    const needW = perLevel.map((nds) => Math.max.apply(null, nds.map((nd) => Math.max(measure(stripBold(nd.label || ""), FONT.body), measure(stripBold(nd.sub || ""), FONT.body)))) + 24);
+    const availW = r.w - hGap * (depth - 1);
+    const natural = needW.map((n) => Math.min(300, Math.max(72, n)));
+    const sumW = natural.reduce((a, b) => a + b, 0);
+    // 余りは 1 列に寄せず全列を共通の倍率で広げる(最大 1.8 倍)。1 列だけ極端に広い箱になるのを防ぐ。
+    // それでも余ったら木ごと中央に置く。入らないときは比例縮小する
+    const k = Math.min(1.8, availW / sumW);
+    const colWs = natural.map((w2) => w2 * k);
+    const used = colWs.reduce((a, b) => a + b, 0);
+    const colX = [];
+    colWs.reduce((cx, w2) => (colX.push(cx), cx + w2 + hGap), r.x + Math.max(0, (availW - used) / 2));
     const rowH = (r.h - vGap * (leaves - 1)) / leaves;
     if (rowH < 24) c.warnings.push("tree overflow: " + leaves + " leaves");
     const boxH = Math.max(24, Math.min(rowH, 72));
     const heightOf = (nd) => (nd.children && nd.children.length ? nd.children.reduce((a, k) => a + heightOf(k), 0) + vGap * (nd.children.length - 1) : rowH);
     const place = (nd, top, level) => {
-      const h = heightOf(nd), cy = top + h / 2, x = r.x + level * (colW + hGap);
+      const h = heightOf(nd), cy = top + h / 2, x = colX[level], colW = colWs[level];
       const dark = level === 0 || nd.highlight;
       const label = stripBold(nd.label || ""), sub = stripBold(nd.sub || "");
       c.prims.push(rect(x, cy - boxH / 2, colW, boxH, { fill: dark ? P.fillDark : P.fillLight }));
@@ -1965,6 +1994,20 @@
 
   // Generation grammar: one visual, or 1–3 equal text panels. Legacy normalization
   // below is retained only for old saved specs; every /api/generate response uses this.
+  /** 「**ラベル**：値」が 1 行に入らず、かつラベル列に割るには枠が狭いとき、語の途中ではなく
+   *  ラベルの直後で折る。行数が増えない場合だけ採用する(「自社の運営要 / 因」のような切れ方を防ぐ) */
+  function breakAtLabel(text, w, fs) {
+    const t = String(text || "");
+    if (!t || t.includes("\n")) return t;
+    const before = estimateLines(t, w, fs);
+    if (before < 2) return t;
+    const m = t.match(/^(\s*(?:\*\*[^*]+\*\*|[^:：\n]{2,16})\s*[:：])(\s*)(\S[\s\S]*)$/);
+    if (!m) return t;
+    const head = m[1], rest = m[3];
+    if (estimateLines(head, w, fs) > 1) return t;
+    if (estimateLines(head, w, fs) + estimateLines(rest, w, fs) > before) return t;
+    return head + "\n" + rest;
+  }
   function renderNestedItems(node, r, c) {
     const rows = node.items.flatMap((v) => Array.isArray(v) ? v.map((t) => ({ text: itemToText(t), level: 1 })) : [{ text: itemToText(v), level: 0 }]);
     const labelledOutline =
@@ -1993,7 +2036,7 @@
         const fontSize = row.level ? Math.max(FONT.floor, fs - 2) : fs;
         const labelW = cols ? lw : 0;
         const w = r.w - PAD * 2 - indent - markerW - labelW;
-        const text = cols ? pairs[i].value : row.text;
+        const text = cols ? pairs[i].value : breakAtLabel(row.text, w, fontSize);
         // 項目の間隔はスライド全体で決めた LIST_GAP を足すだけ。この枠の余りからは決めない
         return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 + LIST_GAP : 3 };
       });
