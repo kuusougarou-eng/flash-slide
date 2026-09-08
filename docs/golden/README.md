@@ -4,7 +4,7 @@
 これが品質の正解であり、高速エンジン(`public/layout.js`)はこれを再現することを目標にする。
 順番は「①正解をレビューで固める → ②エンジンをこの正解の再現に作り替え、正解との一致で品質を測る」。
 
-- 生成: `python scripts/make-golden.py`(既定マスタ: `~/Documents/プロジェクトアプローチ.pptx`)→ `docs/golden/golden-v2.pptx`。`--only 3,7` で一部だけ
+- 生成: `python scripts/make-golden.py`(既定マスタ: `~/Documents/プロジェクトアプローチ.pptx`)→ `docs/golden/golden-v2.pptx`。`--only 3,7` で一部だけプレビュー(正本を上書きしないよう自動で `golden-v2-partial.pptx` に保存される)
 - 書き出し: `powershell.exe -File scripts/ppt-export-file.ps1 docs/golden/golden-v2.pptx debug/golden-v2 1920`(PowerPoint 自身の描画)
 - v1 の生成器は `scripts/make-golden-v1.py` に残してある(比較用)
 - `*.pptx` はマスタ(社内テンプレート)を含むため **git に入れない**(`.gitignore`)。スクリプトだけを管理する
@@ -75,7 +75,20 @@
 - 1 枚に主図 + 補助(小表・要点帯・確認指標)を必ず置き、40pt 以上の縦の空きを残さない。
 - 右列は「意味合い / 読み取り / 判断」の帯 + 太字の小見出し + 箇条書き + So what。
 
+## 外部参照: carnot-tech/consulting-pptx-skill(2026-09-08 に検証)
+
+ユーザー紹介の [consulting-pptx-skill](https://github.com/carnot-tech/consulting-pptx-skill)(MIT)を実際に clone・実描画して確認した。
+
+- **62 型カタログ本体(`assets/SuperTemplate_62type.pptx`)は全スライドが未入力のプレースホルダー**(「Text 1」「ラベル1」「値」)。実描画して確認したところ、視覚的に流用できる完成デザインは無い(型カタログは「発想帳」であり、埋めて初めて資料になる設計)。ここから直接コピーする価値はない。
+- **価値は `references/slide-rules.md`(実務レビュー由来 約110項目)にある。** 本文で「本質はこのファイル」と明言されており、実際に読んで妥当性が高い。うち今回のゴールデンスライドに具体的に反映したもの:
+  - **表ヘッダーは本文より大きく太字**(§6)。[make-golden.py:889](scripts/make-golden.py) の実行計画表(#16)でヘッダーが本文(10.5pt)より**小さい 9pt** になっていたバグを発見・修正(→ 11.5pt)。単一ファイルの自己流儀だけで作ると起きる典型の見落としで、外部規約と付き合わせて初めて見つかった
+  - **版面充填率 55% 以上**(§5.13)・**塗りボックスに枠線なし**(§5.3。ただし白地キャンバス上で白塗り図形の輪郭を示す枠線は例外として許容: P12 スイムレーン・P24 成果物モックの白カード)・**非該当セルは「—」**(§6。P16 で採用済み)は元から一致していた
+  - **機械チェックの考え方**(§8: FAIL 0 にしてから納品)を採用し、そのチェッカー本体を `scripts/golden-lint.py` として移植した(下記)
+- **`scripts/golden-lint.py`** は元の `scripts/check_deck.py`(MIT)をこのプロジェクト用に移植したもの。`python scripts/golden-lint.py docs/golden/golden-v2.pptx` で実行。v2(header 修正後)は **0 FAIL / 30 WARN**。WARN の大半はタイトル長(元テンプレの 18.5pt・別幅を基準にした文字数モデルなので、実際に2行に収まっているかは実描画 PNG で必ず確認する。今回は全 25 枚を目視済みで、はみ出し・不自然な折返しは無い)。残りは上記の「白塗り+枠線」の意図的な例外と、非該当セル用の「—」を AI 文体のダッシュ連結と誤検出したもの(いずれも false positive と判断)
+- **`references/ai-smell-lexicon.md`**(AI くささのある語彙・言い回し集)は、今後スライドの本文をレビューする際のチェックリストとして有用。今回のゴールデンスライドの本文には該当語は検出されなかった
+- **v3 の追加型候補**(62型カタログから、今の 25 型に無いもの): `true_waterfall`(厳密なブリッジ)、`scenario_table`(シナリオ×前提×結果)、`risk_table`(リスク・兆候・打ち手)、`decision_fork` / `decision_page`(意思決定ページ)、`status_heatmap_comment`(4段階ヒートマップ+コメント)、`proportional_circles`(比例円の対比)、`ranked_bar_annotated`(順位棒+注記)、`scenario_lines_cagr`(シナリオ線+CAGR チップ)
+
 ## 次にやること
-1. ユーザーのレビュー → 原則の更新 → v3(追加候補: ピラミッド / ファネル / RACI / リスク熱マップ / 顧客ジャーニー / KPI ツリー / シナリオ比較 / ベンチマーク棒)。
+1. ユーザーのレビュー → 原則の更新 → v3(上記の追加型候補 + ピラミッド / ファネル / RACI / 顧客ジャーニー / KPI ツリー / ベンチマーク棒)。
 2. 正解が固まったら、`layout.js` を「この正解を再現する」方向に作り替え、`docs/golden` との一致率で品質を測る。
-3. 幾何チェッカー `scripts/golden-check.py`(版面外・フッター侵入・縦の空き・重なり)を書き、生成のたびに走らせる(Sonnet に委譲予定だったが利用制限で未着手)。
+3. 幾何チェッカー(版面外・フッター侵入・縦の空き・重なり)は未着手。`golden-lint.py` はテキスト・規約面のチェックのみで、座標計算による重なり検出は別途必要。

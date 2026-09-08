@@ -887,7 +887,7 @@ def s16_action_table():
         else:
             ce.fill.solid(); ce.fill.fore_color.rgb = fill
     for j, h in enumerate(hdr):
-        cell(0, j, h, size=T_SMALL, bold=True, color=WHITE, fill=DARK, align=PP_ALIGN.CENTER if j in (0, 3, 4, 5, 6) else PP_ALIGN.LEFT)
+        cell(0, j, h, size=T_H2, bold=True, color=WHITE, fill=DARK, align=PP_ALIGN.CENTER if j in (0, 3, 4, 5, 6) else PP_ALIGN.LEFT)
     n_sec = sum(1 for r in data if len(r) == 1); n_item = len(data) - n_sec
     sec_h = 20; hdr_h = 28; item_h = (BH - hdr_h - sec_h * n_sec) / n_item
     tbl.rows[0].height = pt(hdr_h)
@@ -1262,10 +1262,17 @@ def s25_goals():
 
 # ---------------- 実行 ----------------
 only = [int(x) for x in A.only.split(",") if x.strip()]
+out_path = A.out
+if only and A.out == ap.get_default("out"):
+    # --only は指定したスライドだけの部分デッキになる。--out を明示しない事故防止に別名で保存する
+    root, ext = os.path.splitext(A.out)
+    out_path = f"{root}-partial{ext}"
+    print(f"--only 指定のため出力先を {out_path} に変更(正本の {A.out} を誤って上書きしないため)")
 for i, fn in enumerate(SLIDES, start=1):
     if only and i not in only:
         continue
     fn()
-os.makedirs(os.path.dirname(A.out) or ".", exist_ok=True)
-prs.save(A.out)
+os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+prs.save(out_path)
+A.out = out_path
 print(f"saved {A.out} ({page[0]} slides)")
