@@ -703,6 +703,49 @@
           }
           fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probe: true, requirementSets: req, shapeAdders: shapeApi, hasChartInNamespace: typeof PowerPoint !== "undefined" && Object.keys(PowerPoint).filter((k) => /chart/i.test(k)) }) }).catch(() => {});
           return;
+        } else if (t.hint === "probepara") {
+          // 開発用: 段落まわりの API 面を実機で確認する(段落間隔・行間・ぶら下げが設定できるか)。
+          // 使い捨てのテキストボックスを自分で作って試し、最後に必ず消す(参照デッキの中身は触らない)
+          const out = { probepara: true, proto: {}, writes: {} };
+          try {
+            await PowerPoint.run(async (ctx) => {
+              const slide = ctx.presentation.slides.getItemAt(0);
+              const box = slide.shapes.addTextBox("段落1\n段落2\n段落3", { left: 10, top: 10, width: 200, height: 100 });
+              box.name = "FS_probe";
+              const tr = box.textFrame.textRange;
+              const pf = tr.paragraphFormat;
+              out.proto.textFrame = Object.keys(Object.getPrototypeOf(box.textFrame));
+              out.proto.textRange = Object.keys(Object.getPrototypeOf(tr));
+              out.proto.paragraphFormat = Object.keys(Object.getPrototypeOf(pf));
+              out.proto.bulletFormat = Object.keys(Object.getPrototypeOf(pf.bulletFormat));
+              out.scalars = { paragraphFormat: pf._scalarPropertyNames, bulletFormat: pf.bulletFormat._scalarPropertyNames, textFrame: box.textFrame._scalarPropertyNames };
+              await ctx.sync();
+              // 1 つずつ別の sync で試す(まとめると誰が落としたか分からない)
+              for (const [key, value] of [["spaceAfter", 12], ["spaceBefore", 12], ["lineSpacing", 1.5], ["leftIndent", 24], ["hangingIndent", 18], ["firstLineIndent", -18], ["indentLevel", 1]]) {
+                try {
+                  box.textFrame.textRange.paragraphFormat[key] = value;
+                  await ctx.sync();
+                  // 追跡対象でないプロパティは「ただの JS 代入」で例外も出ない。load して読み戻せるかまで見る
+                  try {
+                    const pf2 = box.textFrame.textRange.paragraphFormat;
+                    pf2.load(key);
+                    await ctx.sync();
+                    out.writes[key] = "set+load ok: " + JSON.stringify(pf2[key]);
+                  } catch (e2) {
+                    out.writes[key] = "set ok / load NG(未対応): " + (e2 && e2.message ? e2.message.slice(0, 70) : e2);
+                  }
+                } catch (e) {
+                  out.writes[key] = "NG: " + (e && e.message ? e.message.slice(0, 90) : e);
+                }
+              }
+              box.delete();
+              await ctx.sync();
+            });
+          } catch (e) {
+            out.error = String(e && e.message || e);
+          }
+          fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(out) }).catch(() => {});
+          return;
         } else if (t.hint === "reload") {
           location.reload(); // 静的ファイル(layout/render/taskpane.js)を読み直す(no-store 配信)
           return;
