@@ -1724,19 +1724,31 @@
       (nd.children || []).forEach((k) => walkLv(k, lv + 1));
     })(root, 0);
     const needW = perLevel.map((nds) => Math.max.apply(null, nds.map((nd) => Math.max(measure(stripBold(nd.label || ""), FONT.body), measure(stripBold(nd.sub || ""), FONT.body)))) + 24);
-    const availW = r.w - hGap * (depth - 1);
+    // 末端に補足説明があるときは、右にもう 1 列取る(任意。LLM が note を出したときだけ)
+    const noted = [];
+    (function walkN(nd) {
+      const kids = nd.children || [];
+      if (!kids.length && nd.note) noted.push(nd);
+      kids.forEach(walkN);
+    })(root);
+    const hasNotes = noted.length > 0;
+    const availW = r.w - hGap * (depth - 1 + (hasNotes ? 1 : 0));
     const natural = needW.map((n) => Math.min(300, Math.max(72, n)));
     const sumW = natural.reduce((a, b) => a + b, 0);
-    // 余りは 1 列に寄せず全列を共通の倍率で広げる(最大 1.8 倍)。1 列だけ極端に広い箱になるのを防ぐ。
+    // 説明列は木の自然幅を引いた残り(180〜380pt)。説明があるときは木の箱を広げず、幅を説明に回す
+    const noteW = hasNotes ? Math.max(180, Math.min(380, availW - sumW)) : 0;
+    // 余りは 1 列に寄せず全列を共通の倍率で広げる。1 列だけ極端に広い箱になるのを防ぐ。
     // それでも余ったら木ごと中央に置く。入らないときは比例縮小する
-    const k = Math.min(1.8, availW / sumW);
+    const k = Math.min(hasNotes ? 1.15 : 1.8, (availW - noteW) / sumW);
     const colWs = natural.map((w2) => w2 * k);
     const used = colWs.reduce((a, b) => a + b, 0);
     const colX = [];
-    colWs.reduce((cx, w2) => (colX.push(cx), cx + w2 + hGap), r.x + Math.max(0, (availW - used) / 2));
+    colWs.reduce((cx, w2) => (colX.push(cx), cx + w2 + hGap), hasNotes ? r.x : r.x + Math.max(0, (availW - used) / 2));
+    const noteX = hasNotes ? colX[depth - 1] + colWs[depth - 1] + hGap : 0;
     const rowH = (r.h - vGap * (leaves - 1)) / leaves;
     if (rowH < 24) c.warnings.push("tree overflow: " + leaves + " leaves");
     const boxH = Math.max(24, Math.min(rowH, 72));
+    const noteFs = hasNotes ? Math.min.apply(null, noted.map((nd) => fitFont(stripBold(nd.note), noteW - 12, rowH - 6, FONT.body, FONT.tableMin))) : 0;
     const heightOf = (nd) => (nd.children && nd.children.length ? nd.children.reduce((a, k) => a + heightOf(k), 0) + vGap * (nd.children.length - 1) : rowH);
     const place = (nd, top, level) => {
       const h = heightOf(nd), cy = top + h / 2, x = colX[level], colW = colWs[level];
@@ -1755,7 +1767,12 @@
         c.prims.push(textBox(x, cy - boxH / 2, colW, boxH, label, { fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 4, autofit: "none", shrunk: lfs < FONT.min, role: "treelabel" }));
       }
       const kids = nd.children || [];
-      if (!kids.length) return;
+      if (!kids.length) {
+        if (hasNotes && nd.note) {
+          c.prims.push(textBox(noteX, top, noteW, h, stripBold(nd.note), { fontSize: noteFs, color: P.text, align: "left", valign: "middle", pad: 6, autofit: "none", shrunk: noteFs < FONT.min, role: "treenote" }));
+        }
+        return;
+      }
       const busX = x + colW + hGap / 2;
       c.prims.push(line(x + colW, cy, busX, cy, P.line, 1)); // 親の右から幹まで
       let ky = top;
@@ -3155,6 +3172,8 @@
       if (!nd || typeof nd !== "object" || depth > 4 || lim.count >= 18) return null;
       lim.count++;
       const o = { label: str(nd.label || nd.name || nd.head).slice(0, 24), sub: str(nd.sub || nd.text || nd.desc).slice(0, 40), highlight: !!nd.highlight };
+      const note = str(nd.note || nd.detail).slice(0, 120); // 論点ツリーの末端に付ける補足説明(任意)
+      if (note) o.note = note;
       const kids = (nd.children || nd.members || []).map((k) => (typeof k === "string" ? { label: k } : k)).map((k) => build(k, depth + 1)).filter(Boolean);
       if (kids.length) o.children = kids;
       return o.label ? o : null;
