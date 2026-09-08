@@ -397,6 +397,26 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const g = SlideLayout.layout(SlideLayout.normalizeSpec({ title: "t", body: { type: "table", corner: "", colHeaders: ["a", "b", "c", "d"], colGroups: [{ text: "G1", span: 2 }, { text: "G2", span: 2 }], rows: [{ head: "r", cells: ["1", "2", "3", "4"] }] } }), { width: 960, height: 540 });
   assert.ok(g.prims.some((p) => p.text === "G1") && g.prims.some((p) => p.text === "G2"), "column groups drawn");
   checkPrims("groups", g, 960, 540);
+  // 行グループ(2 階層の行見出し): 3+1 の不揃いな span でも和が合えば描画され、版面内に収まる
+  const rg = SlideLayout.layout(
+    SlideLayout.normalizeSpec({
+      title: "t",
+      body: {
+        type: "table",
+        colHeaders: ["現状", "対策"],
+        rowGroups: [{ text: "上期実績", span: 3 }, { text: "下期計画", span: 1 }],
+        rows: [
+          { head: "受注", cells: ["+18%", "継続"] },
+          { head: "粗利率", cells: ["▲2.0pt", "是正"] },
+          { head: "パイプライン", cells: ["92%", "強化"] },
+          { head: "リスク", cells: ["反動減", "監視"] },
+        ],
+      },
+    }),
+    { width: 960, height: 540 }
+  );
+  assert.ok(rg.prims.some((p) => p.text === "上期実績") && rg.prims.some((p) => p.text === "下期計画"), "row groups drawn");
+  checkPrims("rowGroups", rg, 960, 540);
   const q = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.quadrant), { width: 960, height: 540 });
   assert.ok(q.prims.some((p) => p.rotation === 270 && /重要度/.test(p.text)), "y axis label rotated");
   const gt = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.gantt), { width: 960, height: 540 });
