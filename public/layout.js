@@ -947,6 +947,16 @@
     if (head) return "**" + head + "**";
     return text;
   }
+  /** LLM が {"label":"受注","value":"前年比 **+18%**"} のように構造で返したときの正規化。
+   *  ラベルは太字の見出しとして残す(描画側はこの形からラベル列を揃えるかどうかを決める) */
+  function labelValueText(v) {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return v;
+    if (v.label == null && v.value == null) return v;
+    const label = stripBold(str(v.label != null ? v.label : v.head)).trim();
+    const value = str(v.value != null ? v.value : v.text).trim();
+    if (!label) return value;
+    return value ? "**" + label + "**: " + value : "**" + label + "**";
+  }
   /** items → 本文テキスト。ネスト配列は第 2 階層(先頭に記号を付けて表現し、ネイティブ箇条書きは使わない) */
   function itemsBody(items) {
     const arr = items || [];
@@ -1860,12 +1870,32 @@
     const labelledOutline =
       node._labelledOutline != null ? node._labelledOutline : !rows.some((v) => v.level) && rows.every((v) => /^\*\*[^*]+\*\*\s*[:：]/.test(v.text));
     const markerW = labelledOutline ? 0 : BULLET_INDENT;
-    const metrics = (fs) => rows.map((row, i) => {
-      const indent = row.level ? SPACE.levelIndent + 8 : 0;
-      const fontSize = row.level ? Math.max(FONT.floor, fs - 2) : fs;
-      const w = r.w - PAD * 2 - indent - markerW;
-      return { ...row, indent, fontSize, w, h: textHeight(row.text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 : 3 };
-    });
+    // ラベル付きの列挙(**ラベル**: 値)は、ラベル列を左に揃えて値だけを折り返す。
+    // 1 つの文として流すと折り返した 2 行目がラベルの下に潜り、ラベルと値の境目が読めなくなる。
+    // 幅が足りない(値が 1 行 12 字未満になる)ときは列に割らず、従来どおり 1 つの文として流す。
+    const pairs = labelledOutline
+      ? rows.map((row) => {
+          const m = /^\*\*([^*]+)\*\*\s*[:：]?\s*([\s\S]*)$/.exec(row.text);
+          const label = m ? m[1].trim() : "";
+          const value = m ? m[2].trim() : "";
+          return label && value ? { label, value } : null;
+        })
+      : null;
+    const labelled = !!pairs && pairs.every(Boolean);
+    const LABEL_GAP = 10;
+    const labelColW = (fs) => Math.min((r.w - PAD * 2) * 0.4, Math.max.apply(null, pairs.map((p) => measure(p.label, fs))) + LABEL_GAP);
+    const metrics = (fs) => {
+      const lw = labelled ? labelColW(fs) : 0;
+      const cols = labelled && r.w - PAD * 2 - lw >= fs * 12;
+      return rows.map((row, i) => {
+        const indent = row.level ? SPACE.levelIndent + 8 : 0;
+        const fontSize = row.level ? Math.max(FONT.floor, fs - 2) : fs;
+        const labelW = cols ? lw : 0;
+        const w = r.w - PAD * 2 - indent - markerW - labelW;
+        const text = cols ? pairs[i].value : row.text;
+        return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 : 3 };
+      });
+    };
     let fs = Math.min(FONT.large, FONT.body + 4), items = metrics(fs);
     const sum = (xs) => xs.reduce((n, x) => n + x.h + x.gap, 0);
     while (sum(items) > r.h - PAD * 2 && fs > FONT.floor) items = metrics(--fs);
@@ -1888,7 +1918,8 @@
         const gx = r.x + PAD + row.indent;
         // 点は PowerPoint 本来の箇条書き(paragraphFormat.bulletFormat)に描かせる。
         // 「・」を別の図形として置くと、行の高さや折り返しのたびに点だけ位置がずれる。
-        c.prims.push(textBox(gx, gy, row.w + markerW, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
+        if (row.label) c.prims.push(textBox(gx, gy, row.labelW - LABEL_GAP, gridRowH, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, valign: "middle", role: "listlabel", shrunk: fs < FONT.min }));
+        c.prims.push(textBox(gx + row.labelW, gy, row.w + markerW, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
         gy += gridRowH;
       });
       return;
@@ -1896,7 +1927,8 @@
     let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
     for (const row of items) {
       const x = r.x + PAD + row.indent;
-      c.prims.push(textBox(x, y, row.w + markerW, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
+      if (row.label) c.prims.push(textBox(x, y, row.labelW - LABEL_GAP, row.h, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, role: "listlabel", shrunk: fs < FONT.min }));
+      c.prims.push(textBox(x + row.labelW, y, row.w + markerW, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
       y += row.h + row.gap;
     }
   }
@@ -1965,7 +1997,9 @@
       const items = rest.flatMap((x) => x && (!x.type || x.type === "cell") && !x.rows && !x.cols
         ? [x.caption, x.head, x.text, ...(x.items || [])].filter(Boolean) : paragraphs(x));
       const normalizedItems = [];
-      for (const item of items) {
+      for (const src of items) {
+        // {"label":…,"value":…} の構造を落とさずに「**ラベル**: 値」へ畳む(描画側でラベル列を揃える)
+        const item = Array.isArray(src) ? src.map(labelValueText) : labelValueText(src);
         if (typeof item === "string" && /^\s+[-•–]\s+/.test(item) && normalizedItems.length) {
           if (!Array.isArray(normalizedItems[normalizedItems.length - 1])) normalizedItems.push([]);
           normalizedItems[normalizedItems.length - 1].push(item.replace(/^\s*[-•–]\s+/, ""));
