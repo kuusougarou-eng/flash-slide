@@ -6,6 +6,7 @@
  * デザイン規律は consulting-pptx-skill の slide-rules を単スライド向けに要約し、プロンプトとエンジンの両方で担保。
  */
 const icons = require("./icons");
+const { designGuide } = require("./design-guide");
 
 function iconList() {
   return icons.available().join(", ");
@@ -62,6 +63,8 @@ function schemaDoc() {
 7. 密な表: {"type":"ntable","corner"?,"colHeaders":[…],"rows":[{"head","cells":[…]}]}
    8 行以上、または 36 セル以上は PowerPoint の Table オブジェクトを使う。文字の表も対象。
    最大 12 行・6 列。超えるときはスライドを分割する。
+8. ピラミッド: {"type":"pyramid","layers":[{"head","text"},…]}
+   2〜5 層を上から順に指定する。左の階層形状と右の説明を同じ高さで対応させる。座標や形状の幅は指定しない。
 
 # 意味からの選択
 - 原因と打ち手、現状と今後などの二項対立は 2 パネルのテキスト。片側を黒く塗らない。
@@ -88,7 +91,7 @@ function buildMessages({ prompt, context, hint, maxSlides, variant = 0 }) {
   const sys =
     "あなたは戦略コンサルティングファームのスライド作成エンジンです。与えられた素材から、1 回の推論で「1 スライド = 1 メッセージ」のスライド(原則 1 枚、最大 2 枚)の構造化データを JSON で返します。" +
     "モノトーン基調・強調色 1 色のシンプルなデザインで、余白と整列、左→右の読み順、情報の階層を重視します。要素間の関係性(列挙・因果・順序・比較・数値・階層)を見極め、パネル数を決め、1 枚に主となる図は 1 つだけ選択します。\n" +
-    schemaDoc();
+    schemaDoc() + designGuide();
 
   let user = "【今日の日付】" + new Date().toISOString().slice(0, 10) + "(期間や「来月」の計算にだけ使う。本文・出典・footnote に日付そのものを書かない)\n\n";
   if (context && context.trim()) user += "【素材(コンテキスト)】\n" + context.trim() + "\n\n";
