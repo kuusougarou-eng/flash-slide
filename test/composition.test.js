@@ -28,7 +28,7 @@ for (const width of [720, 960, 1280]) {
   assert.strictEqual(rules[0].x2 - rules[0].x1, rules[1].x2 - rules[1].x1);
   assert.ok(!l.prims.some((p) => p.body && p.fill), "text panels have no arbitrary fills");
   assert.ok(l.prims.filter((p) => p.body && p.text && !p.role).every((p) => p.valign === "middle"));
-  assert.ok(l.fonts.head > l.fonts.body && l.fonts.body >= 18);
+  assert.ok(l.fonts.head > l.fonts.body && l.fonts.body >= 14) // 本文の下限はテンプレの本文サイズ(密度優先。余白があるときだけ拡大する);
 }
 const short = norm({ panelCount: 1, body: { type: "sequence", steps: [
   { head: "調査", text: "課題を確認する", highlight: true },

@@ -266,7 +266,8 @@
     applyFontProfile(prof);
     if (spec.compositionVersion) {
       FONT.title = Math.max(FONT.title, 32);
-      FONT.body = Math.max(FONT.body, 18);
+      // 本文の下限はテンプレの本文サイズ(最低 14pt)。18pt に底上げすると密度が出ず、コンサル資料の見た目にならない
+      FONT.body = Math.max(FONT.body, 14);
       FONT.min = FONT.body;
       FONT.head = Math.max(FONT.head, FONT.body + 4);
       FONT.large = FONT.body;
@@ -426,7 +427,8 @@
       }
     }
     // 版面充填: 文字量が版面に対して少ないときは本文を段階的に大きくして埋める(+2pt ずつ、本文 20pt まで)。溢れたら手前の段に戻す
-    if (!pass.bad && (spec.compositionVersion || pass.fill < 0.7) && !options.noGrow) {
+    // 拡大するのは版面が余っているときだけ(composition でも同じ)。密なスライドを無条件に 20pt へ広げない
+    if (!pass.bad && pass.fill < 0.7 && !options.noGrow) {
       for (let b = 2; b <= 6; b += 2) {
         if (FONT.body + b > 20) break; // 上限 20pt(24pt は疎なスライドで幼く見える)
         const next = renderBodyPass(b);
@@ -995,7 +997,7 @@
     const b = cellBody(node);
     const hasBody = !!b.text;
     const head = stripBold(node.head || "").trim();
-    if (node._inPanel && !head && b.nested) return renderNestedItems(node, r, c);
+    if (node._inPanel && !head && Array.isArray(node.items) && node.items.length > 1) return renderNestedItems(node, r, c);
 
     // 示唆帯: 版面幅の薄い地 + 太字の一文(左バーは付けない。callout は薄い地だけ)
     if (node.style === "takeaway") {
@@ -1100,7 +1102,7 @@
     const align = node.align || "left"; // 本文は常に左。右寄せは格子の数値列だけに限る(全体の平仄)
     // 下線パネルの本文は、枠に対して文字が少ないときは縦中央に置く(上に張り付いて下が空く密度の偏りをなくす)
     const need = textHeight(b.text, w - padX * 2 - (b.list ? BULLET_INDENT : 0), fs, b.list ? 4 : 0) + PAD * 2;
-    const roomyPanel = (head || node._panelBody) && !fill && !node._inPanel && bh > need * 1.4;
+    const roomyPanel = !fill && !node._inPanel && bh > need * 1.4;
     const valign = roomyPanel ? "middle" : head ? "top" : fill ? "middle" : node.valign || "top";
     c.prims.push(textBox(x, y, w, bh, b.text, { fontSize: fs, bold: !!node.bold, color: textColor, bullets: b.list, align, valign, pad: padX, shrunk: fs < FONT.min, gid: node._gid }));
   };
@@ -1324,7 +1326,7 @@
     const firstColW = Math.min(r.w * 0.26, 220);
     const otherW = (r.w - firstColW) / Math.max(1, colHeaders.length);
     const colWidths = [firstColW].concat(colHeaders.map(() => otherW));
-    const cellPad = 6;
+    const cellPad = node._composition ? 4 : 6;
     const headH = headerHeight();
     const availRows = r.h - headH;
     let fs = FONT.body;
@@ -1490,13 +1492,14 @@
     const depth = orgDepth(root);
     const leaves = orgLeaves(root);
     const hGap = 12;
-    const boxH = orgBoxH();
+    const boxH = node._composition ? Math.min(96, Math.max(orgBoxH(), (r.h - 36 * (depth - 1)) / depth)) : orgBoxH();
     const vGap = Math.max(18, Math.min(52, (r.h - depth * boxH) / Math.max(1, depth - 1)));
     const maxBoxW = 240;
     const labels = [];
     (function walkL(nd) {
       if (!nd) return;
       labels.push(stripBold(nd.label || ""));
+      if (node._composition && nd.sub) labels.push(stripBold(nd.sub));
       (nd.children || []).forEach(walkL);
     })(root);
     const longest = Math.max.apply(null, [60].concat(labels.map((t) => measure(t, FONT.body) + 16)));
@@ -1518,14 +1521,15 @@
       const w = widthOf(nd);
       const cx = left + w / 2;
       const y = oy + level * (boxH + vGap);
-      const dark = level === 0 || nd.highlight;
+      const dark = node._composition ? false : level === 0 || nd.highlight;
       c.prims.push(rect(cx - boxW / 2, y, boxW, boxH, { fill: dark ? P.fillDark : P.fillLight }));
       const label = stripBold(nd.label || "");
       const sub = stripBold(nd.sub || "");
       if (sub) {
         const lfs = fitFont(label, boxW - 8, boxH * 0.58, fs, FONT.tableMin); // 箱に入らないラベルは縮める(切らない)
         c.prims.push(textBox(cx - boxW / 2, y, boxW, boxH * 0.58, label, { fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "bottom", pad: 3, autofit: "none", role: "orglabel" }));
-        c.prims.push(textBox(cx - boxW / 2, y + boxH * 0.55, boxW, boxH * 0.45, sub, { fontSize: FONT.caption, color: dark ? P.textOnDark : P.textMuted, align: "center", valign: "top", pad: 2, autofit: "none", role: "caption" }));
+        const subFs = node._composition ? fitFont(sub, boxW - 12, boxH * 0.45 - 4, fs, FONT.caption) : FONT.caption;
+        c.prims.push(textBox(cx - boxW / 2, y + boxH * 0.55, boxW, boxH * 0.45, sub, { fontSize: subFs, color: dark ? P.textOnDark : P.textMuted, align: "center", valign: "top", pad: 2, autofit: "none", role: "caption" }));
       } else c.prims.push(textBox(cx - boxW / 2, y, boxW, boxH, label, { fontSize: fitFont(label, boxW - 8, boxH, fs, FONT.tableMin), bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 3, autofit: "none", role: "orglabel" }));
       const kids = nd.children || [];
       if (kids.length) {
@@ -1750,7 +1754,26 @@
   // =====================================================================
   //  spec の正規化(LLM 出力のゆらぎ・旧形式を吸収し、cell/grid/table/figure/arrow に脱糖する)
   // =====================================================================
-  const LEAF_TYPES = ["cell", "table", "ntable", "bars", "column", "line", "stacked", "kpi", "arrow", "gantt", "org"];
+  // A layer shape and its explanation share a row; there is no nested panel.
+  LEAF.pyramid = function (node, r, c) {
+    const n = node.layers.length, gap = 10;
+    const rowH = (r.h - gap * (n - 1)) / n;
+    const figureW = r.w * 0.43, textX = r.x + r.w * 0.54, textW = r.w * 0.46;
+    node.layers.forEach((layer, i) => {
+      const y = r.y + i * (rowH + gap), w = figureW * (i + 1) / n;
+      const cx = r.x + figureW / 2;
+      c.prims.push(rect(cx - w / 2, y, w, rowH, { shape: i === 0 ? "triangle" : "trapezoid", fill: [c.P.fillLight, c.P.fillMid, c.P.line][Math.min(2, Math.floor(i * 3 / n))] }));
+      const labelY = i === 0 ? y + rowH * 0.5 : y + rowH * 0.25;
+      const labelH = i === 0 ? rowH * 0.48 : rowH * 0.5;
+      const fs = fitFont(layer.head, Math.max(20, w * 0.72), labelH, FONT.head, FONT.tableMin);
+      c.prims.push(textBox(cx - w * 0.36, labelY, w * 0.72, labelH, layer.head, { fontSize: fs, bold: true, color: c.P.text, align: "center", valign: "middle", pad: 0, role: "layerhead" }));
+      c.prims.push(line(r.x + figureW + 12, y + rowH / 2, textX - 16, y + rowH / 2, c.P.line, 1));
+      const bodyFs = fitFont(layer.text, textW - 8, rowH - 8, FONT.body, FONT.floor);
+      if (textHeight(layer.text, textW - 8, bodyFs) > rowH - 8) c.warnings.push("pyramid overflow: split long layer descriptions");
+      c.prims.push(textBox(textX, y, textW, rowH, layer.text, { fontSize: bodyFs, color: c.P.text, valign: "middle", pad: 4, role: "layertext" }));
+    });
+  };
+  const LEAF_TYPES = ["cell", "table", "ntable", "bars", "column", "line", "stacked", "kpi", "arrow", "gantt", "org", "pyramid"];
   const FILLS = ["none", "light", "dark", "tint", "accent"];
   const WRAP_TYPES = ["cell", "table", "ntable", "matrix", "bars", "column", "line", "stacked", "kpi", "arrow", "chevrons", "figure", "card", "bullets", "callout", "label", "icon", "gantt", "org"];
 
@@ -1758,22 +1781,27 @@
   // below is retained only for old saved specs; every /api/generate response uses this.
   function renderNestedItems(node, r, c) {
     const rows = node.items.flatMap((v) => Array.isArray(v) ? v.map((t) => ({ text: itemToText(t), level: 1 })) : [{ text: itemToText(v), level: 0 }]);
+    const labelledOutline = !rows.some((v) => v.level) && rows.every((v) => /^\*\*[^*]+\*\*\s*[:：]/.test(v.text));
+    const markerW = labelledOutline ? 0 : BULLET_INDENT;
     const metrics = (fs) => rows.map((row, i) => {
       const indent = row.level ? SPACE.levelIndent + 8 : 0;
       const fontSize = row.level ? Math.max(FONT.floor, fs - 2) : fs;
-      const w = r.w - PAD * 2 - indent - BULLET_INDENT;
+      const w = r.w - PAD * 2 - indent - markerW;
       return { ...row, indent, fontSize, w, h: textHeight(row.text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 : 3 };
     });
-    let fs = FONT.body, items = metrics(fs);
+    let fs = Math.min(FONT.large, FONT.body + 4), items = metrics(fs);
     const sum = (xs) => xs.reduce((n, x) => n + x.h + x.gap, 0);
     while (sum(items) > r.h - PAD * 2 && fs > FONT.floor) items = metrics(--fs);
+    const parentGaps = items.filter((row, i) => i < items.length - 1 && items[i + 1].level === 0);
+    const extraGap = Math.min(20, Math.max(0, (r.h - PAD * 2 - sum(items)) * 0.55 / Math.max(1, parentGaps.length)));
+    parentGaps.forEach((row) => row.gap += extraGap);
     if (fs < FONT.min) c.warnings.push("shrunk nested list to " + fs + "pt");
     if (sum(items) > r.h) c.warnings.push("nested list overflow");
     let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
     for (const row of items) {
       const x = r.x + PAD + row.indent;
-      c.prims.push(textBox(x, y, BULLET_INDENT, row.h, row.level ? "–" : "•", { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listmarker" }));
-      c.prims.push(textBox(x + BULLET_INDENT, y, row.w, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listitem", shrunk: fs < FONT.min }));
+      if (markerW) c.prims.push(textBox(x, y, markerW, row.h, row.level ? "–" : "•", { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listmarker" }));
+      c.prims.push(textBox(x + markerW, y, row.w, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listitem", shrunk: fs < FONT.min }));
       y += row.h + row.gap;
     }
   }
@@ -1857,6 +1885,12 @@
     };
     const normalizeVisual = (n) => {
       if (["sequence", "steps", "process", "chevrons"].includes(n.type)) return seq(n);
+      if (n.type === "pyramid") {
+        if (!Array.isArray(n.layers) || n.layers.length < 2 || n.layers.length > 5) throw new Error("ピラミッドは 2〜5 層にしてください。");
+        const layers = n.layers.map((v) => ({ head: plain(v.head), text: str(v.text) }));
+        if (layers.some((v) => !v.head || !v.text)) throw new Error("各層に見出しと説明を指定してください。");
+        return { type: "pyramid", layers };
+      }
       n = neutral(n);
       if (["table", "matrix", "ntable"].includes(n.type)) {
         const t = normTable(n, n.type === "ntable" ? "ntable" : "table");
@@ -2065,8 +2099,8 @@
           if (b0.colHeaders) b0.colHeaders = b0.colHeaders.filter((_, j) => !empty.includes(j));
           out.compositionRepairs = (out.compositionRepairs || []).concat(["empty column dropped"]);
         }
-        // ネイティブ表は密な数表(11 行超・6 列超)だけ。それ以外はセル合成の格子で描く(文字サイズと帯の規律が効く)
-        if (b0.type === "ntable" && b0.rows.length <= 10 && (b0.colHeaders || []).length <= 5) {
+        // Keep the native Table threshold consistent with normalization and the prompt.
+        if (b0.type === "ntable" && b0.rows.length < 8 && b0.rows.length * (b0.colHeaders || []).length < 36) {
           b0.type = "table";
           out.compositionRepairs = (out.compositionRepairs || []).concat(["ntable → matrix"]);
         }
@@ -2075,6 +2109,7 @@
       if (!out || out.panelCount !== 1 || !b || b.type !== "cell" || !Array.isArray(b.items) || b.items.length < 4) return out;
       const flat = b.items.filter((x) => typeof x === "string");
       if (flat.length !== b.items.length) return out; // 子階層がある列挙はそのまま
+      if (flat.some((t) => t.includes("**"))) return out; // Editorial labels already express the hierarchy.
       const parsed = flat.map((t) => {
         const m = String(t).match(/^\s*([^:：]{2,16})[:：]\s*(.+)$/);
         return m ? { head: m[1].trim(), text: m[2].trim() } : null;
