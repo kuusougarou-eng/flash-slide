@@ -720,6 +720,11 @@
           saveSettings();
         } else if (t.hint === "pick") {
           await replaceWith(Number(t.i) || 0); // 開発用: 他の案 i に差し替え(カードのクリック相当)
+        } else if (t.hint === "secgo") {
+          // 開発用: 章立ての「この構成で生成」を押す(ペインは WebView2 で、UI Automation から DOM に届かない)
+          if ($("sections").hidden || typeof $("secGo").onclick !== "function") throw new Error("章立ての提案が出ていません");
+          await $("secGo").onclick();
+          fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secgo: true, tag: "section", slideIds: (batch && batch.insertedIds) || [], count: (lastSpecs || []).length }) }).catch(() => {});
         } else if (t.hint === "tune") {
           $("tune").open = t.open !== false; // 開発用: 「仕上げの希望」を開閉
         } else if (t.hint === "autoopen") {
