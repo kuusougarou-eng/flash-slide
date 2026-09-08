@@ -176,9 +176,22 @@
    * 本文用: 18pt を基本に、収まらないときだけ floor まで縮小(警告)。
    * 逆に余白が大きいときは max(既定 22pt)まで拡大して版面を埋める(文字量に応じた適切な大きさ)。
    */
-  function fitBody(c, text, w, h, pref, paraGap, max) {
+  function fitBody(c, text, w, h, pref, paraGap, max, list) {
     let fs = pref || FONT.body;
     while (fs > FONT.floor && textHeight(text, w, fs, paraGap) > h) fs -= 1;
+    if (list) {
+      // 箇条書きは項目ごとに1行へ収まる大きさを優先する。Office.js の bulletFormat には
+      // ぶら下げインデント(2行目以降を1行目の文字位置に揃える)の設定が無く、折り返すと
+      // 2行目が点の位置まで戻って見える(実機確認済み)。どんな長さの文章でも floor まで
+      // 縮めれば1行にはなるので、縮小は小幅(2pt まで)に限定する。それで足りない項目が
+      // あれば諦めて高さ基準の fs のまま(折り返しを受け入れる。読みやすさを字下げより優先)
+      const items = stripBold(text).split("\n");
+      const oneLine = (f) => items.every((it) => estimateLines(it, w, f) <= 1);
+      const limit = Math.max(FONT.floor, fs - 2);
+      let f = fs;
+      while (f > limit && !oneLine(f)) f -= 1;
+      if (oneLine(f)) fs = f;
+    }
     if (fs < FONT.min) c.warnings.push("shrunk to " + fs + "pt: " + stripBold(text).slice(0, 18));
     // 部品ごとに拡大しない(隣の部品と文字サイズが揃わなくなる)。版面が余るときの拡大は layout() が全体を一括で行う
     return fs;
@@ -403,10 +416,10 @@
         } else if (p.y != null && p.h != null) {
           alloc = Math.max(alloc, p.y + p.h);
           // 見える高さ: 塗りのある箱・図形・画像は枠、上寄せの文字は文字の高さ(伸ばした空の枠は数えない)
-          const visible =
-            p.kind === "image" || (p.fill && p.fill !== "none") || p.shape || !p.text || (p.valign && p.valign !== "top")
-              ? p.h
-              : Math.min(p.h, textHeight(p.text, p.w - (p.pad || 0) * 2, p.fontSize || FONT.body, 0) + (p.pad || 0) * 2);
+          // 塗りのある箱・図形・画像は枠を、塗りのない文字箱は文字の高さを数える。
+          // (縦中央に置いた文字を枠の高さで数えると、余白だらけの版面が「満杯」に見えて拡大が止まる)
+          const solid = p.kind === "image" || (p.fill && p.fill !== "none") || (p.shape && p.shape !== "rect") || !p.text;
+          const visible = solid ? p.h : Math.min(p.h, textHeight(p.text, p.w - (p.pad || 0) * 2, p.fontSize || FONT.body, 0) + (p.pad || 0) * 2);
           bottom = Math.max(bottom, p.y + visible);
           bands.push([p.y, p.y + visible]);
         }
@@ -713,6 +726,15 @@
         if (first && (first.type === "table" || first.type === "ntable")) first._panelHead = true;
       }
     });
+    // 兄弟パネルが箇条書きのセルなら、行の高さを共有して行の罫を同じ y に揃える(段数が違っても)
+    if (kids.length >= 2) {
+      const listKids = kids.filter((k) => k.type === "cell" && Array.isArray(k.items) && k.items.length);
+      if (listKids.length >= 2) {
+        const rowsOf = (k) => k.items.reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 1), 0);
+        const maxRows = Math.max(...listKids.map(rowsOf));
+        listKids.forEach((k) => (k._siblingRows = maxRows));
+      }
+    }
     const n = kids.length;
     const gap = gapOf(node);
     const avail = r.w - gap * (n - 1);
@@ -1058,7 +1080,7 @@
       if (!hasBody || !head) return;
       const by = r.y + bandH + GAP / 2;
       const bh = r.h - bandH - GAP / 2;
-      const fs = fitBody(c, b.text, r.w - PAD * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, FONT.body, 4);
+      const fs = fitBody(c, b.text, r.w - PAD * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, FONT.body, 4, undefined, b.list);
       c.prims.push(textBox(r.x, by, r.w, bh, b.text, { fontSize: fs, color: P.text, bullets: b.list, valign: "top", shrunk: fs < FONT.min }));
       return;
     }
@@ -1104,7 +1126,7 @@
       if (!hasBody) return;
       y += nh + GAP / 2;
       bh = r.y + r.h - y;
-      const fsN = fitBody(c, b.text, w - PAD * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, FONT.body, b.list ? 4 : 0, FONT.body);
+      const fsN = fitBody(c, b.text, w - PAD * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, FONT.body, b.list ? 4 : 0, FONT.body, b.list);
       c.prims.push(textBox(x, y, w, bh, b.text, { fontSize: fsN, color: dark ? P.textOnDark : P.text, bullets: b.list, align: "left", valign: "top", pad: PAD, shrunk: fsN < FONT.min, gid: node._gid }));
       return;
     }
@@ -1123,7 +1145,7 @@
     if (!hasBody) return;
     const pref = node.size === "large" ? FONT.large : FONT.body;
     const padX = fillKey === "tint" || fillKey === "light" ? PAD * 1.5 : PAD;
-    const fs = fitBody(c, b.text, w - padX * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, pref, b.list ? 4 : 0, head ? FONT.large : FONT.large);
+    const fs = fitBody(c, b.text, w - padX * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, pref, b.list ? 4 : 0, head ? FONT.large : FONT.large, b.list);
     const align = node.align || "left"; // 本文は常に左。右寄せは格子の数値列だけに限る(全体の平仄)
     // 下線パネルの本文は、枠に対して文字が少ないときは縦中央に置く(上に張り付いて下が空く密度の偏りをなくす)
     const need = textHeight(b.text, w - padX * 2 - (b.list ? BULLET_INDENT : 0), fs, b.list ? 4 : 0) + PAD * 2;
@@ -1806,7 +1828,8 @@
   // below is retained only for old saved specs; every /api/generate response uses this.
   function renderNestedItems(node, r, c) {
     const rows = node.items.flatMap((v) => Array.isArray(v) ? v.map((t) => ({ text: itemToText(t), level: 1 })) : [{ text: itemToText(v), level: 0 }]);
-    const labelledOutline = !rows.some((v) => v.level) && rows.every((v) => /^\*\*[^*]+\*\*\s*[:：]/.test(v.text));
+    const labelledOutline =
+      node._labelledOutline != null ? node._labelledOutline : !rows.some((v) => v.level) && rows.every((v) => /^\*\*[^*]+\*\*\s*[:：]/.test(v.text));
     const markerW = labelledOutline ? 0 : BULLET_INDENT;
     const metrics = (fs) => rows.map((row, i) => {
       const indent = row.level ? SPACE.levelIndent + 8 : 0;
@@ -1822,6 +1845,25 @@
     parentGaps.forEach((row) => row.gap += extraGap);
     if (fs < FONT.min) c.warnings.push("shrunk nested list to " + fs + "pt");
     if (sum(items) > r.h) c.warnings.push("nested list overflow");
+    // 余りが大きいときは等高の行の格子にし、文字は行の中で縦中央、行の下に薄い罫を引く。
+    // 境界を作らずに間隔だけ広げると、見出し直下に穴が空いて版面のバランスが崩れる(実測で 56〜84pt の穴)。
+    // 行の高さは兄弟パネルと共有するので、段数が違っても罫の y が揃う。
+    const gridRows = Math.max(items.length, node._siblingRows || 0);
+    const gridRowH = (r.h - PAD * 2) / Math.max(1, gridRows);
+    // 兄弟パネルがあるときは段数が違っても必ず格子にする(片方だけ格子になると行が揃わず、かえって崩れて見える)。
+    // 単独のパネルは、余りが版面の 1/4 を超えるときだけ格子にする(密な箇条書きを間延びさせない)。
+    const useGrid = node._siblingRows > 0 || r.h - PAD * 2 - sum(items) > r.h * 0.25;
+    if (items.length >= 2 && !rows.some((v) => v.level) && useGrid && items.every((row) => row.h <= gridRowH - 4)) {
+      let gy = r.y + PAD;
+      items.forEach((row) => {
+        const gx = r.x + PAD + row.indent;
+        // 点は箱の中央ではなく本文の 1 行目に合わせる(2 行の項目で点だけ下がって見えるのを防ぐ)
+        if (markerW) c.prims.push(textBox(gx, gy + (gridRowH - row.h) / 2, markerW, row.h, "•", { fontSize: row.fontSize, color: c.P.text, pad: 0, role: "listmarker" }));
+        c.prims.push(textBox(gx + markerW, gy, row.w, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", role: "listitem", shrunk: fs < FONT.min }));
+        gy += gridRowH;
+      });
+      return;
+    }
     let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
     for (const row of items) {
       const x = r.x + PAD + row.indent;
@@ -2283,12 +2325,17 @@
       const kids = spec.body.cols;
       const w = (r.w - GAP * (kids.length - 1)) / kids.length;
       const hh = Math.max(...kids.map((k) => textHeight(k.head, w - PAD * 2, FONT.head) + PAD * 2 + 2));
+      // 兄弟パネルで行の高さを共有し、段数が違っても行の罫が同じ y に並ぶようにする
+      const rowsOf = (k) => (k.items || []).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 1), 0);
+      const siblingRows = Math.max(...kids.map(rowsOf));
+      // 「**ラベル**：」で始まる列挙は点を打たない。片方だけ点が付くと左右で体裁が変わるので、全パネルで揃える
+      const labelled = kids.every((k) => (k.items || []).every((v) => !Array.isArray(v) && /^\*\*[^*]+\*\*\s*[:：]/.test(itemToText(v))));
       kids.forEach((k, i) => {
         const x = r.x + i * (w + GAP);
         c.prims.push(textBox(x, r.y, w, hh - 2, k.head, { fontSize: FONT.head, bold: true, color: c.P.text, align: "center", valign: "middle", role: "panelhead" }));
         c.prims.push(line(x, r.y + hh, x + w, r.y + hh, c.P.text, RULE_THICK));
         const br = { x, y: r.y + hh + GAP / 2, w, h: r.h - hh - GAP / 2 };
-        LEAF.cell({ type: "cell", items: k.items, valign: "middle", _inPanel: true, _gid: 1 }, br, c);
+        LEAF.cell({ type: "cell", items: k.items, valign: "middle", _inPanel: true, _gid: 1, _siblingRows: siblingRows, _labelledOutline: labelled }, br, c);
       });
       return;
     }
