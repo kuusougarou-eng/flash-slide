@@ -23,7 +23,9 @@ function schemaDoc() {
 # JSON の形式（JSON だけを返す）
 1 パネル: {"panelCount":1,"title","lead"?,"footnote"?,"body":図またはcell,"note"?:短い補足文字列}
 2・3 パネル: {"panelCount":2|3,"title","lead"?,"footnote"?,"panels":[{"head","text"? | "items":[文字列または子箇条書きの配列]},…]}
-複数枚が必要なら {"slides":[上の形式,…]}。最大 2 枚。それでも収まらないときは {"sections":[{"title","summary","slides":1},…]}（3〜6 章）。
+枚数はここで決めきる。既定は 1 枚。独立した結論が 2 つあり、片方を落とすと意味が欠けるときだけ {"slides":[上の形式,…]} で 2 枚。
+3 枚以上 {"sections":[{"title","summary","slides":1},…]}（3〜6 章）を返すのは、入力そのものが章立てされた提案書・報告書で、章ごとに結論と根拠が揃っている場合に限る。
+量が多いだけ・箇条書きが長いだけでは分割しない。その場合は格子や 2 階層の箇条書きに構造化して 1 枚に収める。
 - title: 主語と述語を持つ結論の常体文。24〜40 字程度。見出しラベルの前置きや内容と無関係な個数を入れない。
 - lead: title と重ならない根拠を短い 1 文で。不要なら空文字。
 - footnote: 入力にある出典・注記だけ。
@@ -93,7 +95,7 @@ function schemaDoc() {
 `;
 }
 
-function buildMessages({ prompt, context, hint, maxSlides, variant = 0 }) {
+function buildMessages({ prompt, context, hint, maxSlides, variant = 0, allowSections = true }) {
   const sys =
     "あなたは戦略コンサルティングファームのスライド作成エンジンです。与えられた素材から、1 回の推論で「1 スライド = 1 メッセージ」のスライド(原則 1 枚、最大 2 枚)の構造化データを JSON で返します。" +
     "モノトーン基調・強調色 1 色のシンプルなデザインで、余白と整列、左→右の読み順、情報の階層を重視します。要素間の関係性(列挙・因果・順序・比較・数値・階層)を見極め、パネル数を決め、1 枚に主となる図は 1 つだけ選択します。\n" +
@@ -111,7 +113,11 @@ function buildMessages({ prompt, context, hint, maxSlides, variant = 0 }) {
   ];
   const v = Math.max(0, Math.min(3, Math.trunc(Number(variant) || 0)));
   user += "\n\n【今回の案の構成方針】\n" + alternatives[v] + "\n別案でも事実・条件を保持し、構成を変えるための事象・数値・順序は捏造しない。内容に成立しない形式を無理に使わない。";
-  user += `\n\n【枚数】原則 1 枚。独立した 2 つのメッセージがあり 1 枚に収まらないときだけ 2 枚(slides)。それでも収まらない量なら sections を返す。最大 ${maxSlides || 2} 枚。`;
+  // 章立ての 1 章分を作るときは sections を返させない(章がさらに章立てを返すと、その章のスライドが 0 枚になる)
+  const more = allowSections
+    ? "sections(3 枚以上)は、入力が章立てされた提案書・報告書で、章ごとに結論と根拠が揃っているときに限る。"
+    : "この依頼は章立ての 1 章分なので sections は返さない。必ず slides を返し、入り切らないなら 2 枚に分ける。";
+  user += `\n\n【枚数】既定は 1 枚。独立した結論が 2 つあるときだけ 2 枚(slides、最大 ${maxSlides || 2} 枚)。${more}量が多いだけなら分割せず、格子や 2 階層の箇条書きに構造化して収める。`;
   user += "\n\nJSON のみを出力:";
   return [
     { role: "system", content: sys },
