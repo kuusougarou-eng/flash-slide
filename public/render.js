@@ -364,7 +364,7 @@
   function applyRect(shapes, p, ctx) {
     const G = PowerPoint.GeometricShapeType;
     const type =
-      { chevron: G.chevron, homePlate: G.homePlate, rightArrow: G.rightArrow, downArrow: G.downArrow, roundRect: G.roundRectangle, ellipse: G.ellipse, triangle: G.triangle }[p.shape] ||
+      { chevron: G.chevron, homePlate: G.homePlate, rightArrow: G.rightArrow, downArrow: G.downArrow, roundRect: G.roundRectangle, ellipse: G.ellipse, triangle: G.triangle, trapezoid: G.trapezoid }[p.shape] ||
       G.rectangle;
     const shape = shapes.addGeometricShape(type, { left: p.x, top: p.y, width: Math.max(1, p.w), height: Math.max(1, p.h) });
     shape.name = "FS_" + (p.text ? "text" : "rect");
@@ -727,5 +727,34 @@
     });
   }
 
-  root.SlideRender = { prepare, renderSpec, renderSpecs, deleteSlides, selectSlides, supports, analyzeReference, devBuildReference };
+  /** Insert a statically compiled OPC package. Native charts/tables stay editable.
+   * The package is built server-side, never by executing model-provided code.
+   * Baseline/final IDs are read inside this operation to avoid stale snapshots.
+   */
+  async function insertCompiled(base64, opts) {
+    opts = opts || {};
+    if (!supports("1.8")) throw new Error("PowerPoint API 1.8 が必要です。");
+    if (typeof base64 !== "string" || base64.length < 100) throw new Error("コンパイル済みスライドが空です。");
+    const started = performance.now();
+    return PowerPoint.run(async (context) => {
+      const pres = context.presentation;
+      pres.slides.load("items/id");
+      await context.sync();
+      const before = new Set(pres.slides.items.map((s) => s.id));
+      const options = { formatting: "KeepSourceFormatting" };
+      if (opts.afterId) {
+        if (!before.has(opts.afterId)) throw new Error("挿入先スライドが見つかりません。");
+        options.targetSlideId = opts.afterId;
+      }
+      pres.insertSlidesFromBase64(base64, options);
+      pres.slides.load("items/id");
+      await context.sync();
+      const ids = pres.slides.items.map((s) => s.id).filter((id) => !before.has(id));
+      if (!ids.length) throw new Error("スライドの挿入を確認できませんでした。");
+      pres.setSelectedSlides(ids);
+      await context.sync();
+      return { slideIds: ids, ms: Math.round(performance.now() - started), mode: "compiled-native", syncs: 3 };
+    });
+  }
+  root.SlideRender = { prepare, renderSpec, renderSpecs, insertCompiled, deleteSlides, selectSlides, supports, analyzeReference, devBuildReference };
 })(typeof self !== "undefined" ? self : this);

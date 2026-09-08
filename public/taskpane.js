@@ -21,12 +21,13 @@
       if (s.accent) setAccent(s.accent);
       if (s.hint) $("hint").value = s.hint;
       if (s.model) $("model").dataset.pending = s.model;
+      if (s.engine && $("engine")) $("engine").value = s.engine;
       if (s.prompt) $("prompt").value = s.prompt;
     } catch (_) {}
   }
   function saveSettings() {
     try {
-      localStorage.setItem(LS, JSON.stringify({ accent: selectedAccent, customAccent, hint: $("hint").value, model: $("model").value, prompt: $("prompt").value }));
+      localStorage.setItem(LS, JSON.stringify({ accent: selectedAccent, customAccent, hint: $("hint").value, model: $("model").value, prompt: $("prompt").value, engine: $("engine") ? $("engine").value : "std" }));
     } catch (_) {}
   }
   function setAccent(v) {
@@ -283,6 +284,37 @@
     const pre = replacing && batch.prepared ? batch.prepared : prepared;
     const nb = { prompt, prepared: pre, cands: [], insertedIdx: -1, insertedIds: [], tag: overrides.tag || "slide" };
     batch = nb;
+    if (($("engine") && $("engine").value) === "native") {
+      // ゴールデン経路: 1 回の推論で {layout, data} → サーバで OOXML を静的に組む → 1 回の挿入
+      try {
+        const gen = await api("/api/generate-native", { prompt, model: $("model").value, layout: overrides.layout || "" });
+        if (batch !== nb) return;
+        lastPrompt = prompt;
+        go.querySelector("span").textContent = "挿入中…";
+        const result = await SlideRender.insertCompiled(gen.pptxBase64, { afterId: pre && pre.selectedId });
+        if (batch !== nb) return;
+        if (oldIds.length) {
+          await SlideRender.deleteSlides(oldIds);
+          await SlideRender.selectSlides(result.slideIds);
+        }
+        nb.insertedIdx = 0;
+        nb.insertedIds = result.slideIds.slice();
+        nb.cands[0] = { specs: [], gen };
+        done = true;
+        const total = idle(go, t0, goLabel());
+        setDone(true);
+        $("result").hidden = false;
+        $("specJson").value = JSON.stringify({ layout: gen.layout, plan: gen.plan }, null, 2);
+        showCandidates(0, true);
+        fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slide: nb.tag, native: true, slideId: result.slideIds[0], layout: gen.layout, inferenceMs: gen.inferenceMs, compileMs: gen.compileMs, insertMs: result.ms, totalSec: total, model: gen.model, usage: gen.usage, warnings: gen.warnings }) }).catch(() => {});
+      } catch (e) {
+        if (batch === nb) batch = null;
+        idle(go, t0, goLabel());
+        showError("エラー: " + (e && e.message ? e.message : e));
+        console.error(e);
+      }
+      return;
+    }
     const tasks = [];
     for (let i = 0; i < n; i++) tasks.push(api("/api/generate", { prompt, hint, model: $("model").value, mock, maxSlides: pg.maxSlides, variant: i }));
     tasks.forEach((t) => t.catch(() => {})); // 未処理 rejection の警告を抑える(結果は allSettled で拾う)
@@ -415,6 +447,7 @@
   // 実描画(render.js)と同じ layout() 結果を使うので構成・比率は同じ。フォントメトリクス差で折り返しは 1 行ずれうる。
   const SHAPES = {
     homePlate: "polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%)",
+    trapezoid: "polygon(20% 0, 80% 0, 100% 100%, 0 100%)",
     chevron: "polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%, 18% 50%)",
     triangle: "polygon(50% 0, 100% 100%, 0 100%)",
     rightArrow: "polygon(0 25%, 70% 25%, 70% 0, 100% 50%, 70% 100%, 70% 75%, 0 75%)",
@@ -511,6 +544,13 @@
       if (p.kind === "rect") inner.appendChild(primBox(p));
       else if (p.kind === "line") inner.appendChild(primLine(p));
       else if (p.kind === "table") for (const f of p.fallback || []) inner.appendChild(primBox(f));
+      else if (p.kind === "image") {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.src = "/api/icon?name=" + encodeURIComponent(p.name) + "&color=" + encodeURIComponent(p.color || "#252525") + "&size=256";
+        Object.assign(img.style, { position: "absolute", left: p.x + "px", top: p.y + "px", width: p.w + "px", height: p.h + "px" });
+        inner.appendChild(img);
+      }
     }
     wrap.appendChild(inner);
     const fit = () => {
@@ -694,6 +734,11 @@
         } else if (t.hint === "reload") {
           location.reload(); // 静的ファイル(layout/render/taskpane.js)を読み直す(no-store 配信)
           return;
+        } else if (t.hint === "rendernative" && t.doc && t.pptxBase64) {
+          await refreshReference();
+          const result = await SlideRender.insertCompiled(t.pptxBase64, { afterId: prepared.selectedId });
+          fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ renderedNative: t.tag || "native", result }) }).catch(() => {});
+          return;
         } else if (t.hint === "renderspec" && t.doc && Array.isArray(t.specs)) {
           // Reproducible rendering QA: only a specifically addressed test deck.
           await refreshReference();
@@ -725,12 +770,13 @@
           if (t.accent) setAccent(t.accent);
           if (t.layoutId != null) $("layout").value = t.layoutId;
           if (t.model != null) $("model").value = t.model;
+          if (t.engine != null && $("engine")) $("engine").value = t.engine; // 開発用: "native" でゴールデン経路
           if (t.pages != null) {
             pagesMode = Number(t.pages) || 0; // 開発用: 枚数 select 相当
             $("pages").value = String(pagesMode);
           }
           // useInput: 入力欄の文字をそのまま使う(ユーザー経路の再現。再生成=差し替えの判定を含めて検証できる)
-          await generate({ prompt: t.useInput ? undefined : t.prompt || "自動テスト " + (t.hint || ""), hint: t.hint || "", tag: t.tag || "trigger", n: t.n || 1 });
+          await generate({ prompt: t.useInput ? undefined : t.prompt || "自動テスト " + (t.hint || ""), hint: t.hint || "", tag: t.tag || "trigger", n: t.n || 1, layout: t.layout || "" });
         }
       } finally {
         triggerBusy = false;

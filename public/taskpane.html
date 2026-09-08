@@ -75,6 +75,13 @@
             <select id="layout" title="新規スライドのレイアウト(参照スライドを引き継ぐときは自動)"><option value="">自動</option></select>
           </div>
           <div class="tuneRow">
+            <span class="qLbl">エンジン</span>
+            <select id="engine" title="標準: 4 案並列の合成レイアウト / ゴールデン: 32 型のネイティブ図形・グラフを 1 回の推論で組む">
+              <option value="std">標準(4 案)</option>
+              <option value="native">ゴールデン(32 型・ネイティブ)</option>
+            </select>
+          </div>
+          <div class="tuneRow">
             <span class="qLbl">モデル</span>
             <select id="model" title="LLM モデル"><option value="">(既定 .env)</option></select>
           </div>

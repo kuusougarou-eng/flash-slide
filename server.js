@@ -67,6 +67,22 @@ app.get("/api/models", async (req, res) => {
   res.json({ models, default: c.model });
 });
 
+// Semantic native compiler pilot. Explicit endpoint until all 32 layouts have
+// data bindings; it does not silently replace the general generation route.
+// Warm the golden compiler at boot so the first native generation does not pay for parsing the master.
+setImmediate(() => { try { require("./server/golden-native/author").getCompiler(); } catch (e) { console.warn("[golden-native] compiler warm-up skipped:", e.message); } });
+app.post("/api/generate-native", async (req, res) => {
+  try {
+    const { prompt = "", model, layout = "", page = "" } = req.body || {};
+    // One inference: the model returns {layout, data}; the static compiler builds the slide on the golden master.
+    const result = await require("./server/golden-native/author/generate").generate(prompt, { model, layout: layout === "gantt" ? "13" : layout, page });
+    const { buffer, ...meta } = result;
+    res.json({ ...meta, pptxBase64: buffer.toString("base64") });
+  } catch (e) {
+    res.status(400).json({ error: e.message || String(e) });
+  }
+});
+
 app.post("/api/generate", async (req, res) => {
   const t0 = Date.now();
   const { prompt = "", context = "", hint = "", model = "", mock = false, maxSlides = 2, variant = 0 } = req.body || {};
