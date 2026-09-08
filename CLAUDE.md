@@ -44,6 +44,12 @@
 - **デザイン規律の正典**は consulting-pptx-skill の slide-rules(README に要約)。変更時は `test/layout.test.js` の
   品質ゲート(サンプルは 960×540 で縮小なし・塗り+枠線なし・角丸なし・表ヘッダ塗りなし・最終行罫なし)を通す。
 - `fill.foregroundColor` は `fill.type==="Solid"` のときだけ読む(それ以外で読むと sync 全体が例外で落ちる)。
+- **箇条書きは段落単位に付けられない**。`textRange.getSubstring(...).paragraphFormat.bulletFormat.visible` は段落単位に効かず
+  シェイプ全体に掛かる(ぶら下げインデントの API が無いのと同じ系統。2026-09-09 実機確認)。
+  「見出し + 箇条書き」のセルは **layout.js が別のテキストシェイプに分けて**渡す。疑似マーカー(「・」の図形)には戻さない。
+- 検証トリガを使う前に `curl -sk https://localhost:3455/api/health` の `devTrigger` を見る。別エージェントが `DEV_TRIGGER` なしで
+  サーバを再起動していると `/api/debug/trigger` が 404 になる。`server.log` も相手の再起動で切り詰められるので、完了判定はログの行数ではなく
+  スライドの実体(`ppt-state.ps1` / `ppt-export-slide.ps1`)で行う。生成物は選択スライドの直後とは限らず末尾に伸びるので、索引ではなく題名で探す。
 
 ## テスト/検証の規律(このプロジェクト)
 - 「できた」の前に**実機 PowerPoint で描画を目視**する。確立された手順:
