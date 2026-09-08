@@ -102,6 +102,9 @@
   const PAD = SPACE.pad;
   const GAP = SPACE.gap;
   const BULLET_INDENT = SPACE.bulletIndent;
+  // 箇条書きの項目間に足す余白。**スライド全体で 1 度だけ決める**(renderBodyPass が版面を見て与える)。
+  // 部品ごとに自分の枠の余りを見て広げると、同じスライドの中で間隔がばらつく
+  let LIST_GAP = 0;
   const RULE_THICK = RULE.thick;
   const RULE_THIN = RULE.thin;
   const FILL_RATIO_MIN = 0.55;
@@ -1309,10 +1312,13 @@
       if (headDark) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillDark }));
       if (m.hasRowHead && cornerText) c.prims.push(textBox(x0, y, m.rowHeadW, m.headH - 2, cornerText, { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : P.text, align: "left", valign: headDark ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
       const colGap = 1.5;
+      // 塗り(headFill:"light"・強調列)と罫は同じ「境界を示す」役目が重複する。塗りがあれば罫は引かない、
+      // 塗りが無い(headFill:"none")ときだけ罫で区切る。dark は帯そのものが境界を兼ねるので元から罫を引かない
+      const fillOf = (j) => (headDark ? null : node.highlightCol === j ? P.accentTint : node.headFill === "none" ? null : P.fillLight);
       m.colHeaders.forEach((h, j) => {
         const hl = node.highlightCol === j;
         const cx = x0 + m.rowHeadW + m.colX(j);
-        const cellFill = headDark ? null : hl ? P.accentTint : node._composition ? P.fillLight : null;
+        const cellFill = fillOf(j);
         // 列見出しは中身の揃えに合わせる(数値列なら右、それ以外は左)。見出しだけ中央にしない
         const colAlign = colNumeric[j] ? "right" : "left";
         c.prims.push(
@@ -1321,7 +1327,7 @@
             bold: true,
             color: headDark ? P.textOnDark : hl ? P.accent : P.text,
             align: colAlign,
-            valign: headDark || node._composition ? "middle" : "bottom",
+            valign: headDark || cellFill ? "middle" : "bottom",
             pad: m.cellPad,
             fill: cellFill,
             autofit: "none",
@@ -1330,11 +1336,12 @@
         );
       });
       // 列見出しの罫: パネル先頭の格子なら太い罫(この行がパネル見出しを兼ねる。1本のパネル見出し罫として繋げる)、
-      // 単体の格子なら細い罫(列見出しの塗りが列ごとに分かれているので、罫も同じ隙間で列ごとに分けて揃える)、パネルの中では引かない
+      // 単体の格子で塗りが無い列だけ細い罫(塗りがある列は塗りの下端が境界を兼ねるので罫を重ねない)、パネルの中では引かない
       if (node._panelHead && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.fillDark, RULE_THICK)); // 隣のパネル見出し罫(h-2)と同じ y
       else if (!node._inPanel && !headDark) {
         const ruleY = y + m.headH - 2;
         m.colHeaders.forEach((h, j) => {
+          if (fillOf(j)) return;
           const cx = x0 + m.rowHeadW + m.colX(j);
           c.prims.push(line(cx + colGap, ruleY, cx + m.colWs[j] - colGap, ruleY, P.line, 1.2));
         });
@@ -1987,15 +1994,13 @@
         const labelW = cols ? lw : 0;
         const w = r.w - PAD * 2 - indent - markerW - labelW;
         const text = cols ? pairs[i].value : row.text;
-        return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 : 3 };
+        // 項目の間隔はスライド全体で決めた LIST_GAP を足すだけ。この枠の余りからは決めない
+        return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 + LIST_GAP : 3 };
       });
     };
     let fs = Math.min(FONT.large, FONT.body + 4), items = metrics(fs);
     const sum = (xs) => xs.reduce((n, x) => n + x.h + x.gap, 0);
     while (sum(items) > r.h - PAD * 2 && fs > FONT.floor) items = metrics(--fs);
-    const parentGaps = items.filter((row, i) => i < items.length - 1 && items[i + 1].level === 0);
-    const extraGap = Math.min(20, Math.max(0, (r.h - PAD * 2 - sum(items)) * 0.55 / Math.max(1, parentGaps.length)));
-    parentGaps.forEach((row) => row.gap += extraGap);
     if (fs < FONT.min) c.warnings.push("shrunk nested list to " + fs + "pt");
     if (sum(items) > r.h) c.warnings.push("nested list overflow");
     // 余りが大きいときは等高の行の格子にし、文字は行の中で縦中央、行の下に薄い罫を引く。
@@ -2004,8 +2009,9 @@
     const gridRows = Math.max(items.length, node._siblingRows || 0);
     const gridRowH = (r.h - PAD * 2) / Math.max(1, gridRows);
     // 兄弟パネルがあるときは段数が違っても必ず格子にする(片方だけ格子になると行が揃わず、かえって崩れて見える)。
-    // 単独のパネルは、余りが版面の 1/4 を超えるときだけ格子にする(密な箇条書きを間延びさせない)。
-    const useGrid = node._siblingRows > 0 || r.h - PAD * 2 - sum(items) > r.h * 0.25;
+    // 単独のパネルは格子にしない。自分の枠の余りだけを見て行を広げると、同じスライドの中で間隔がばらつく
+    // (余白の使い方はスライド全体の LIST_GAP に任せる)。
+    const useGrid = node._siblingRows > 0;
     if (items.length >= 2 && !rows.some((v) => v.level) && useGrid && items.every((row) => row.h <= gridRowH - 4)) {
       let gy = r.y + PAD;
       items.forEach((row) => {
