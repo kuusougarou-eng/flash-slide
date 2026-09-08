@@ -2146,12 +2146,15 @@
         if (t.type === "ntable" && t.colHeaders.length < nc) t.colHeaders = Array.from({ length: nc }, (_, j) => t.colHeaders[j] || "");
         if (t.type === "table") {
           // Suppress small-axis header bands, but retain supplied meaning inline.
+          // 見出しをセル文字列へ畳み込むときも .items(箇条書き版)は残す(text だけに見出しを足す)
+          const mergeLabel = (v, label) =>
+            v && typeof v === "object" && Array.isArray(v.items) && v.items.length ? Object.assign({}, v, { text: label + cellText(v) }) : label + cellText(v);
           if (nc <= 2 && !t.colGroups && !t.axes) {
-            t.rows.forEach((r) => { r.cells = r.cells.map((v, j) => t.colHeaders[j] ? t.colHeaders[j] + ": " + cellText(v) : v); });
+            t.rows.forEach((r) => { r.cells = r.cells.map((v, j) => (t.colHeaders[j] ? mergeLabel(v, t.colHeaders[j] + ": ") : v)); });
             t.colHeaders = [];
           }
           if (t.rows.length <= 2 && !t.headShape && !t.axes) {
-            t.rows.forEach((r) => { if (r.head) r.cells = r.cells.map((v) => r.head + ": " + cellText(v)); r.head = ""; });
+            t.rows.forEach((r) => { if (r.head) r.cells = r.cells.map((v) => mergeLabel(v, r.head + ": ")); r.head = ""; });
             t.corner = "";
           }
           t.headFill = "light";
