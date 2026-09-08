@@ -399,13 +399,9 @@
       if (p.color) tr.font.color = p.color;
       if (p.fontName) tr.font.name = p.fontName;
       tr.paragraphFormat.horizontalAlignment = HALIGN[p.align] || "Left";
-      if (p.bulletFrom != null && p.bulletFrom > 0 && p.bulletFrom < p.text.length) {
-        // 見出し行(記号なし)+箇条書き行が混在するセル: 見出し段落には点を付けず、それ以降の段落だけ点を付ける
-        tr.paragraphFormat.bulletFormat.visible = false;
-        tr.getSubstring(p.bulletFrom, p.text.length - p.bulletFrom).paragraphFormat.bulletFormat.visible = !!p.bullets;
-      } else {
-        tr.paragraphFormat.bulletFormat.visible = !!p.bullets;
-      }
+      // 点は段落単位に付けられない(getSubstring の paragraphFormat はシェイプ全体に掛かる。実機で確認済み)。
+      // 見出し + 箇条書きのセルは layout.js が別のシェイプに分けて渡す
+      tr.paragraphFormat.bulletFormat.visible = !!p.bullets;
       if (!p.bold && p.boldRanges && p.boldRanges.length) {
         for (const [s, l] of p.boldRanges) if (l > 0 && s + l <= p.text.length) tr.getSubstring(s, l).font.bold = true;
       }

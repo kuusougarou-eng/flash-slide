@@ -1298,23 +1298,27 @@
       const cornerText = stripBold(node.corner || "").trim();
       const bandX = m.hasRowHead && !cornerText ? x0 + m.rowHeadW : x0;
       const bandW = m.gridW - (bandX - x0);
-      if (node._composition && !headDark) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillLight }));
+      // headDark(黒帯の反転見出し)は列をまたいで1本につながった帯そのものが意図した見た目なので、
+      // 共有の背面シェイプのままにする。淡い地(_composition)は列ごとの塗りが要るだけなので、
+      // 見出しシェイプの背面にもう1枚重ねず、各列見出しのテキストシェイプ自身に塗りを持たせる(隣とは小さな余白で分ける)
       if (headDark) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillDark }));
       if (m.hasRowHead && cornerText) c.prims.push(textBox(x0, y, m.rowHeadW, m.headH - 2, cornerText, { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : P.text, align: "left", valign: headDark ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
+      const colGap = 1.5;
       m.colHeaders.forEach((h, j) => {
         const hl = node.highlightCol === j;
         const cx = x0 + m.rowHeadW + m.colX(j);
-        if (hl && !headDark) c.prims.push(rect(cx, y, m.colWs[j], m.headH - 2, { fill: P.accentTint }));
+        const cellFill = headDark ? null : hl ? P.accentTint : node._composition ? P.fillLight : null;
         // 列見出しは中身の揃えに合わせる(数値列なら右、それ以外は左)。見出しだけ中央にしない
         const colAlign = colNumeric[j] ? "right" : "left";
         c.prims.push(
-          textBox(cx, y, m.colWs[j], m.headH - 2, stripBold(h), {
+          textBox(cx + (cellFill ? colGap : 0), y, m.colWs[j] - (cellFill ? colGap * 2 : 0), m.headH - 2, stripBold(h), {
             fontSize: headFs,
             bold: true,
             color: headDark ? P.textOnDark : hl ? P.accent : P.text,
             align: colAlign,
             valign: headDark || node._composition ? "middle" : "bottom",
             pad: m.cellPad,
+            fill: cellFill,
             autofit: "none",
             role: "matrixcell",
           })
@@ -1398,26 +1402,31 @@
         // 先頭行だけ記号なし・残り全行に記号(見出し+箇条書き)は、見出し行を除いた分だけ箇条書きにする
         const isList = lines.length > 1 && (marked === 0 || marked === lines.length);
         const headBullet = !isList && lines.length > 1 && marked === lines.length - 1 && !/^\s*[・•\-–]/.test(lines[0]);
-        let text, bulletFrom;
-        if (na) text = "—";
-        else if (isList && marked) text = lines.map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n");
-        else if (headBullet) {
-          text = [lines[0]].concat(lines.slice(1).map((l) => l.replace(/^\s*[・•\-–]\s*/, ""))).join("\n");
-          bulletFrom = stripBold(lines[0]).length + 1; // 見出し行(記号なし)の次の文字から箇条書きにする
-        } else text = raw;
-        c.prims.push(
-          textBox(cx, y, cw, rh, text, {
-            fontSize: m.fs,
-            color: dark ? P.textOnDark : na ? P.lineLight : P.text,
-            bold: false,
-            align: fill ? "center" : numeric ? "right" : "left",
-            valign: "middle",
-            pad: fill ? 2 : m.cellPad,
-            bullets: isList || headBullet,
-            bulletFrom,
-            role: "matrixcell",
-          })
-        );
+        const cellPad = fill ? 2 : m.cellPad;
+        const cellOpt = {
+          fontSize: m.fs,
+          color: dark ? P.textOnDark : na ? P.lineLight : P.text,
+          bold: false,
+          align: fill ? "center" : numeric ? "right" : "left",
+          pad: cellPad,
+          role: "matrixcell",
+        };
+        if (!na && headBullet) {
+          // 見出し行と箇条書き行は別のシェイプに分ける。1 つのシェイプの中で見出し段落だけ点を外すことは
+          // Office.js ではできない(getSubstring の paragraphFormat が段落単位に効かず、シェイプ全体に掛かる。
+          // 実機で確認済み)。疑似マーカーは使わず、箇条書き側は PowerPoint 本来の bulletFormat のまま
+          const headText = lines[0];
+          const listText = lines.slice(1).map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n");
+          const vPad = Math.min(cellPad, 8) * 2;
+          const headH = textHeight(stripBold(headText), cw - cellPad * 2, m.fs) + vPad;
+          const listH = textHeight(listText, cw - cellPad * 2 - BULLET_INDENT, m.fs) + vPad;
+          const top = y + Math.max(0, (rh - headH - listH) / 2);
+          c.prims.push(textBox(cx, top, cw, headH, headText, Object.assign({}, cellOpt, { valign: "top", bullets: false })));
+          c.prims.push(textBox(cx, top + headH, cw, Math.max(listH, y + rh - top - headH), listText, Object.assign({}, cellOpt, { valign: "top", bullets: true })));
+        } else {
+          const text = na ? "—" : isList && marked ? lines.map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n") : raw;
+          c.prims.push(textBox(cx, y, cw, rh, text, Object.assign({}, cellOpt, { valign: "middle", bullets: isList })));
+        }
         if (node.axes && j > 0) c.prims.push(line(cx, y + 2, cx, y + rh - 2, P.lineLight, RULE_THIN)); // 4 象限などは列の間にも薄い縦罫
       }
       if (!last && !m.chevron) c.prims.push(line(x0 + (m.hasRowHead ? m.rowHeadW : 0), y + rh, x0 + m.gridW, y + rh, P.lineLight, RULE_THIN));
