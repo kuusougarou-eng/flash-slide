@@ -1324,9 +1324,16 @@
           })
         );
       });
-      // 列見出しの罫: パネル先頭の格子なら太い罫(この行がパネル見出しを兼ねる)、単体の格子なら細い罫、パネルの中では引かない
+      // 列見出しの罫: パネル先頭の格子なら太い罫(この行がパネル見出しを兼ねる。1本のパネル見出し罫として繋げる)、
+      // 単体の格子なら細い罫(列見出しの塗りが列ごとに分かれているので、罫も同じ隙間で列ごとに分けて揃える)、パネルの中では引かない
       if (node._panelHead && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.fillDark, RULE_THICK)); // 隣のパネル見出し罫(h-2)と同じ y
-      else if (!node._inPanel && !headDark) c.prims.push(line(bandX, y + m.headH - 2, x0 + m.gridW, y + m.headH - 2, P.line, 1.2));
+      else if (!node._inPanel && !headDark) {
+        const ruleY = y + m.headH - 2;
+        m.colHeaders.forEach((h, j) => {
+          const cx = x0 + m.rowHeadW + m.colX(j);
+          c.prims.push(line(cx + colGap, ruleY, cx + m.colWs[j] - colGap, ruleY, P.line, 1.2));
+        });
+      }
       y += m.headH;
     }
     // 行見出しのグループ帯(2 階層の行見出し): 対象の行の高さを合計した 1 個の箱に、グループ名を縦横中央で置く
@@ -1923,7 +1930,8 @@
       : null;
     const labelled = !!pairs && pairs.every(Boolean);
     const LABEL_GAP = 10;
-    const labelColW = (fs) => Math.min((r.w - PAD * 2) * 0.4, Math.max.apply(null, pairs.map((p) => measure(p.label, fs))) + LABEL_GAP);
+    // 文字幅は近似なので、実フォントで 1 文字はみ出してラベルが折り返さないよう estimateLines と同じ安全率を戻す
+    const labelColW = (fs) => Math.min((r.w - PAD * 2) * 0.4, Math.max.apply(null, pairs.map((p) => measure(p.label, fs))) / 0.95 + LABEL_GAP);
     const metrics = (fs) => {
       const lw = labelled ? labelColW(fs) : 0;
       const cols = labelled && r.w - PAD * 2 - lw >= fs * 12;
@@ -1958,7 +1966,7 @@
         const gx = r.x + PAD + row.indent;
         // 点は PowerPoint 本来の箇条書き(paragraphFormat.bulletFormat)に描かせる。
         // 「・」を別の図形として置くと、行の高さや折り返しのたびに点だけ位置がずれる。
-        if (row.label) c.prims.push(textBox(gx, gy, row.labelW - LABEL_GAP, gridRowH, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, valign: "middle", role: "listlabel", shrunk: fs < FONT.min }));
+        if (row.label) c.prims.push(textBox(gx, gy, row.labelW - 2, gridRowH, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, valign: "middle", role: "listlabel", shrunk: fs < FONT.min }));
         c.prims.push(textBox(gx + row.labelW, gy, row.w + markerW, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
         gy += gridRowH;
       });
@@ -1967,7 +1975,7 @@
     let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
     for (const row of items) {
       const x = r.x + PAD + row.indent;
-      if (row.label) c.prims.push(textBox(x, y, row.labelW - LABEL_GAP, row.h, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, role: "listlabel", shrunk: fs < FONT.min }));
+      if (row.label) c.prims.push(textBox(x, y, row.labelW - 2, row.h, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, role: "listlabel", shrunk: fs < FONT.min }));
       c.prims.push(textBox(x + row.labelW, y, row.w + markerW, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
       y += row.h + row.gap;
     }
@@ -2038,7 +2046,16 @@
       const entries = (n.items || []).flatMap((v) => Array.isArray(v) ? v.map(plain) : typeof v === "object" ? [plain(v.label) + ": " + (v.values || [v.value]).join(" / ") + (n.unit || "")] : [plain(v)]);
       return [prefix, plain(n.text), ...entries].filter(Boolean);
     };
+    // 図 + 意味合いの 2 パネル。ガント・体制図・密な表は幅がいるので単独パネル専用にする
+    const PANEL_FIGURES = ["line", "bars", "column", "stacked", "kpi", "table", "matrix", "pyramid"];
     const panel = (n) => {
+      const fig = n && n.body && n.body.type && PANEL_FIGURES.includes(n.body.type) ? n.body : null;
+      if (fig) {
+        const v = normalizeVisual(fig);
+        v.head = plain(n.head);
+        v._figurePanel = true;
+        return v;
+      }
       n = neutral(n);
       const source = n && !n.type && n.rows ? n.rows : [n];
       const first = source[0] || {};
@@ -2120,6 +2137,7 @@
     if (count > 1) {
       if (!candidates || candidates.length !== count) throw new Error("パネル数と panels の要素数が一致していません。");
       out.body = { cols: candidates.map(panel) };
+      if (out.body.cols.filter((p) => p._figurePanel).length > 1) throw new Error("図は 1 枚に 1 つです。図を横に 2 つ並べず、片側は文章にしてください。");
       if (out.body.cols.some((p) => !p.head)) throw new Error("各パネルにはサブタイトルが必要です。");
       if (s.note) throw new Error("複数パネルの下に補足ブロックは置けません。該当パネルの本文に含めてください。");
     } else {
@@ -2435,19 +2453,28 @@
   function renderComposition(spec, r, c) {
     if (spec.panelCount > 1) {
       const kids = spec.body.cols;
-      const w = (r.w - GAP * (kids.length - 1)) / kids.length;
-      const hh = Math.max(...kids.map((k) => textHeight(k.head, w - PAD * 2, FONT.head) + PAD * 2 + 2));
+      const figIdx = kids.findIndex((k) => k._figurePanel);
+      // 図 + 補足説明の 2 パネルは 1.8 : 1(ゴールデン 8 枚の実測の中央値)。それ以外は等幅
+      const units = kids.map((_, i) => (figIdx >= 0 && kids.length === 2 && i === figIdx ? 1.8 : 1));
+      const unitSum = units.reduce((a, u) => a + u, 0);
+      const avail = r.w - GAP * (kids.length - 1);
+      const ws = units.map((u) => (avail * u) / unitSum);
+      const xs = [];
+      kids.reduce((cx, _, i) => (xs.push(cx), cx + ws[i] + GAP), r.x);
+      const hh = Math.max(...kids.map((k, i) => textHeight(k.head, ws[i] - PAD * 2, FONT.head) + PAD * 2 + 2));
       // 兄弟パネルで行の高さを共有し、段数が違っても行の罫が同じ y に並ぶようにする
+      const textKids = kids.filter((k) => !k._figurePanel);
       const rowsOf = (k) => (k.items || []).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 1), 0);
-      const siblingRows = Math.max(...kids.map(rowsOf));
+      const siblingRows = textKids.length >= 2 ? Math.max(...textKids.map(rowsOf)) : 0;
       // 「**ラベル**：」で始まる列挙は点を打たない。片方だけ点が付くと左右で体裁が変わるので、全パネルで揃える
-      const labelled = kids.every((k) => (k.items || []).every((v) => !Array.isArray(v) && /^\*\*[^*]+\*\*\s*[:：]/.test(itemToText(v))));
+      const labelled = textKids.every((k) => (k.items || []).every((v) => !Array.isArray(v) && /^\*\*[^*]+\*\*\s*[:：]/.test(itemToText(v))));
       kids.forEach((k, i) => {
-        const x = r.x + i * (w + GAP);
+        const w = ws[i], x = xs[i];
         c.prims.push(textBox(x, r.y, w, hh - 2, k.head, { fontSize: FONT.head, bold: true, color: c.P.text, align: "center", valign: "middle", role: "panelhead" }));
         c.prims.push(line(x, r.y + hh, x + w, r.y + hh, c.P.text, RULE_THICK));
         const br = { x, y: r.y + hh + GAP / 2, w, h: r.h - hh - GAP / 2 };
-        LEAF.cell({ type: "cell", items: k.items, valign: "middle", _inPanel: true, _gid: 1, _siblingRows: siblingRows, _labelledOutline: labelled }, br, c);
+        if (k._figurePanel) (LEAF[k.type] || LEAF.cell)(Object.assign({}, k, { _composition: true, highlight: false }), br, c);
+        else LEAF.cell({ type: "cell", items: k.items, valign: "middle", _inPanel: true, _gid: 1, _siblingRows: siblingRows, _labelledOutline: labelled }, br, c);
       });
       return;
     }
