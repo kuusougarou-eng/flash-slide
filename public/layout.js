@@ -455,7 +455,7 @@
         return m && Number(m[1]) > Number(m[2]) * 1.05;
       });
       // ガントは描画側で行数に応じて自前で文字を縮めるので、その警告では全体を縮めない
-      const bad = rowsOver || wr.some((w) => /shrunk|too small|too wide|failed|table overflow|sequence overflow|note too large/.test(w)) || alloc > bodyRect.y + bodyRect.h + 1;
+      const bad = rowsOver || wr.some((w) => /shrunk|too small|too wide|failed|table overflow|sequence overflow|tree overflow|note too large/.test(w)) || alloc > bodyRect.y + bodyRect.h + 1;
       return { prims: pr, warnings: wr, fonts, fill, bad, bump, listGap: listGap || 0 };
     };
     let pass = renderBodyPass(0);
@@ -1732,19 +1732,21 @@
       kids.forEach(walkN);
     })(root);
     const hasNotes = noted.length > 0;
-    const availW = r.w - hGap * (depth - 1 + (hasNotes ? 1 : 0));
+    const noteGap = 26; // 末端と説明のあいだは線で結ばず、余白で分ける
+    const availW = r.w - hGap * (depth - 1) - (hasNotes ? noteGap : 0);
     const natural = needW.map((n) => Math.min(300, Math.max(72, n)));
     const sumW = natural.reduce((a, b) => a + b, 0);
     // 説明列は木の自然幅を引いた残り(180〜380pt)。説明があるときは木の箱を広げず、幅を説明に回す
-    const noteW = hasNotes ? Math.max(180, Math.min(380, availW - sumW)) : 0;
+    const noteW = hasNotes ? Math.max(180, Math.min(420, availW - sumW)) : 0;
     // 余りは 1 列に寄せず全列を共通の倍率で広げる。1 列だけ極端に広い箱になるのを防ぐ。
     // それでも余ったら木ごと中央に置く。入らないときは比例縮小する
-    const k = Math.min(hasNotes ? 1.15 : 1.8, (availW - noteW) / sumW);
+    // 説明があるときは木の箱を広げない(余った幅はすべて説明に回す)
+    const k = Math.min(hasNotes ? 1.0 : 1.8, (availW - noteW) / sumW);
     const colWs = natural.map((w2) => w2 * k);
     const used = colWs.reduce((a, b) => a + b, 0);
     const colX = [];
     colWs.reduce((cx, w2) => (colX.push(cx), cx + w2 + hGap), hasNotes ? r.x : r.x + Math.max(0, (availW - used) / 2));
-    const noteX = hasNotes ? colX[depth - 1] + colWs[depth - 1] + hGap : 0;
+    const noteX = hasNotes ? colX[depth - 1] + colWs[depth - 1] + noteGap : 0;
     const rowH = (r.h - vGap * (leaves - 1)) / leaves;
     if (rowH < 24) c.warnings.push("tree overflow: " + leaves + " leaves");
     const boxH = Math.max(24, Math.min(rowH, 72));
