@@ -102,9 +102,6 @@
   const PAD = SPACE.pad;
   const GAP = SPACE.gap;
   const BULLET_INDENT = SPACE.bulletIndent;
-  // 箇条書きの項目間に足す余白。**スライド全体で 1 度だけ決める**(renderBodyPass が版面を見て与える)。
-  // 部品ごとに自分の枠の余りを見て広げると、同じスライドの中で間隔がばらつく
-  let LIST_GAP = 0;
   const RULE_THICK = RULE.thick;
   const RULE_THIN = RULE.thin;
   const FILL_RATIO_MIN = 0.55;
@@ -387,9 +384,8 @@
     // --- 本文(グリッド) ---
     const body = spec.body && (spec.body.rows || spec.body.cols || spec.body.type) ? spec.body : { type: "cell", text: "" };
     /** 本文を 1 回描く。bump>0 なら文字階層をその分大きくして描く(版面充填) */
-    const renderBodyPass = (bump, listGap) => {
+    const renderBodyPass = (bump) => {
       const saved = Object.assign({}, FONT);
-      LIST_GAP = listGap || 0; // 箇条書きの項目間隔はこのパスの間だけ有効(部品側からは書き換えない)
       if (bump) {
         FONT.body += bump;
         FONT.min += bump;
@@ -411,7 +407,6 @@
       }
       const fonts = { body: FONT.body, head: FONT.head, min: FONT.min, floor: FONT.floor };
       Object.assign(FONT, saved);
-      LIST_GAP = 0;
       let bottom = bodyRect.y,
         alloc = bodyRect.y;
       const bands = []; // 実際に何かが見えている縦の区間(重なりは後で畳む)
@@ -456,7 +451,7 @@
       });
       // ガントは描画側で行数に応じて自前で文字を縮めるので、その警告では全体を縮めない
       const bad = rowsOver || wr.some((w) => /shrunk|too small|too wide|failed|table overflow|sequence overflow|tree overflow|note too large/.test(w)) || alloc > bodyRect.y + bodyRect.h + 1;
-      return { prims: pr, warnings: wr, fonts, fill, bad, bump, listGap: listGap || 0 };
+      return { prims: pr, warnings: wr, fonts, fill, bad, bump };
     };
     let pass = renderBodyPass(0);
     if (pass.bad && !options.noGrow) {
@@ -479,15 +474,6 @@
         if (next.bad || (!spec.compositionVersion && next.fill > 0.98)) break;
         pass = next;
         if (!spec.compositionVersion && pass.fill >= 0.8) break;
-      }
-    }
-    // 行間: 文字を大きくしてもまだ版面が余るときだけ、箇条書きの項目間隔を広げる。
-    // 広げる量はスライドで 1 つ(部品ごとに自分の枠の余りを見て決めない)。溢れたら手前の段に戻す
-    if (!pass.bad && pass.fill < 0.7 && !options.noGrow) {
-      for (const g of [3, 6]) {
-        const next = renderBodyPass(pass.bump, g);
-        if (next.bad) break;
-        pass = next;
       }
     }
     const bodyStart = prims.length;
@@ -1756,18 +1742,15 @@
       const h = heightOf(nd), cy = top + h / 2, x = colX[level], colW = colWs[level];
       const dark = level === 0 || nd.highlight;
       const label = stripBold(nd.label || ""), sub = stripBold(nd.sub || "");
-      c.prims.push(rect(x, cy - boxH / 2, colW, boxH, { fill: dark ? P.fillDark : P.fillLight }));
       // 縮んだことを prims にも残す。密度判定(全体の縮小・2 枚分割)はこの印を見るので、
       // ツリーだけ黙って 11pt まで縮むと「収まっている」と誤判定される
-      if (sub) {
-        const lfs = fitFont(label, colW - 10, boxH * 0.58, FONT.body, FONT.tableMin);
-        const sfs = fitFont(sub, colW - 12, boxH * 0.45 - 4, FONT.body, FONT.caption);
-        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH * 0.58, label, { fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "bottom", pad: 4, autofit: "none", shrunk: lfs < FONT.min, role: "treelabel" }));
-        c.prims.push(textBox(x, cy - boxH / 2 + boxH * 0.55, colW, boxH * 0.45, sub, { fontSize: sfs, color: dark ? P.textOnDark : P.textMuted, align: "center", valign: "top", pad: 3, autofit: "none", role: "caption" }));
-      } else {
-        const lfs = fitFont(label, colW - 10, boxH, FONT.body, FONT.tableMin);
-        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH, label, { fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 4, autofit: "none", shrunk: lfs < FONT.min, role: "treelabel" }));
-      }
+      // 背景と文字を別のシェイプに割らず、1 つの塗り付きシェイプに入れる(掴んで動かせる・編集しやすい)。
+      // ラベルと補足の書き分けは font の範囲指定で行う
+      const lfs = fitFont(label, colW - 10, sub ? boxH * 0.58 : boxH, FONT.body, FONT.tableMin);
+      const sfs = sub ? fitFont(sub, colW - 12, boxH * 0.45 - 4, FONT.body, FONT.caption) : 0;
+      const text = sub ? label + "\n" + sub : label;
+      const styleRanges = sub ? [{ start: label.length + 1, len: sub.length, size: sfs, color: dark ? P.textOnDark : P.textMuted, bold: false }] : [];
+      c.prims.push(rect(x, cy - boxH / 2, colW, boxH, { fill: dark ? P.fillDark : P.fillLight, text, boldRanges: [], styleRanges, fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 4, autofit: "none", shrunk: lfs < FONT.min, role: "treelabel" }));
       const kids = nd.children || [];
       if (!kids.length) {
         if (hasNotes && nd.note) {
@@ -2049,6 +2032,23 @@
         })
       : null;
     const labelled = !!pairs && pairs.every(Boolean);
+    // Office.js の ParagraphFormat は horizontalAlignment と indentLevel しか持たない(実機で確認)。
+    // 段落間隔・行間・ぶら下げインデントが無いので、1 シェイプの中で項目間に余白は作れない。
+    // したがって **余白のためにシェイプを分けない**。分けるのは API の穴を埋める必要があるときだけ:
+    // 兄弟パネルで行を揃える / ラベル列を揃える / 子階層に別の字送りと字下げを与える。
+    // 既定は 1 シェイプ・複数段落(PowerPoint 本来の箇条書き)。生成後に項目を足すのが Enter だけで済み、
+    // 1 シェイプで描く他の箇条書きと見た目も揃う
+    if (!(node._siblingRows > 0) && !labelled && !rows.some((v) => v.level)) {
+      const text = rows.map((v) => v.text).join("\n");
+      const tw = r.w - PAD * 2 - BULLET_INDENT;
+      const fs = fitBody(c, text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, true);
+      const need = textHeight(text, tw, fs) + PAD * 2;
+      c.prims.push(
+        textBox(r.x, r.y, r.w, r.h, text, { fontSize: fs, color: c.P.text, bullets: true, valign: r.h > need * 1.4 ? "middle" : "top", pad: PAD, role: "listitem", shrunk: fs < FONT.min })
+      );
+      if (need > r.h) c.warnings.push("nested list overflow");
+      return;
+    }
     const LABEL_GAP = 10;
     // 文字幅は近似なので、実フォントで 1 文字はみ出してラベルが折り返さないよう estimateLines と同じ安全率を戻す
     const labelColW = (fs) => Math.min((r.w - PAD * 2) * 0.4, Math.max.apply(null, pairs.map((p) => measure(p.label, fs))) / 0.95 + LABEL_GAP);
@@ -2061,8 +2061,9 @@
         const labelW = cols ? lw : 0;
         const w = r.w - PAD * 2 - indent - markerW - labelW;
         const text = cols ? pairs[i].value : breakAtLabel(row.text, w, fontSize);
-        // 項目の間隔はスライド全体で決めた LIST_GAP を足すだけ。この枠の余りからは決めない
-        return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 8 + LIST_GAP : 3 };
+        // 分けたときも 1 シェイプの箇条書きと同じ字送りにする(項目間に余白を足さない)。
+        // 足せるのは分けたときだけなので、足すと 1 シェイプで描く箇条書きとの間で見た目が食い違う
+        return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 0 : 3 };
       });
     };
     let fs = Math.min(FONT.large, FONT.body + 4), items = metrics(fs);
@@ -2074,13 +2075,21 @@
     // 境界を作らずに間隔だけ広げると、見出し直下に穴が空いて版面のバランスが崩れる(実測で 56〜84pt の穴)。
     // 行の高さは兄弟パネルと共有するので、段数が違っても罫の y が揃う。
     const gridRows = Math.max(items.length, node._siblingRows || 0);
-    const gridRowH = (r.h - PAD * 2) / Math.max(1, gridRows);
+    // 行の高さは版面を割り切った値ではなく「自然な字送りを行数単位に丸めた値」を上限にする。
+    // 割り切った値をそのまま使うと、疎なパネルで行が版面いっぱいに散り、1 シェイプで描く
+    // 箇条書きより明らかに間延びして見える(同じスライドの中で間隔が食い違う)。
+    // 行数単位に丸めるので、兄弟パネルの行数が同じなら左右の行は揃ったままになる
+    const lineH = fs * FONT.lineHeight;
+    const naturalRowH = Math.max.apply(null, items.map((row) => row.h).concat([lineH]));
+    const gridRowH = Math.min((r.h - PAD * 2) / Math.max(1, gridRows), Math.ceil(naturalRowH / lineH) * lineH);
     // 兄弟パネルがあるときは段数が違っても必ず格子にする(片方だけ格子になると行が揃わず、かえって崩れて見える)。
-    // 単独のパネルは格子にしない。自分の枠の余りだけを見て行を広げると、同じスライドの中で間隔がばらつく
-    // (余白の使い方はスライド全体の LIST_GAP に任せる)。
+    // 単独のパネルは格子にしない(そもそもここへは来ない)。余白のために行を広げると、
+    // 1 シェイプで描く箇条書きとの間で間隔が食い違う。疎な版面は文字サイズと縦中央で埋める。
     const useGrid = node._siblingRows > 0;
-    if (items.length >= 2 && !rows.some((v) => v.level) && useGrid && items.every((row) => row.h <= gridRowH - 4)) {
-      let gy = r.y + PAD;
+    // 行の高さは自然な字送りそのものなので、収まり判定は等号まで許す(-4 のままだと必ず外れて
+    // 兄弟パネルが揃わない流し込みに落ちる)
+    if (items.length >= 2 && !rows.some((v) => v.level) && useGrid && items.every((row) => row.h <= gridRowH + 0.5)) {
+      let gy = r.y + Math.max(PAD, (r.h - gridRowH * gridRows) / 2); // 縮めた分は上下に均等に返す(兄弟パネルで同じ値になる)
       items.forEach((row) => {
         const gx = r.x + PAD + row.indent;
         // 点は PowerPoint 本来の箇条書き(paragraphFormat.bulletFormat)に描かせる。

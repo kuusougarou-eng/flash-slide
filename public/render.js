@@ -402,6 +402,17 @@
       // 点は段落単位に付けられない(getSubstring の paragraphFormat はシェイプ全体に掛かる。実機で確認済み)。
       // 見出し + 箇条書きのセルは layout.js が別のシェイプに分けて渡す
       tr.paragraphFormat.bulletFormat.visible = !!p.bullets;
+      // 1 つのシェイプの中で見出しと補足の書き分けをする(背景と文字を別シェイプに割らないため)。
+      // 段落単位の書式(点・インデント)はシェイプ全体に掛かるが、font は範囲ごとに設定できる
+      if (p.styleRanges && p.styleRanges.length) {
+        for (const sr of p.styleRanges) {
+          if (!(sr.len > 0) || sr.start + sr.len > p.text.length) continue;
+          const sub = tr.getSubstring(sr.start, sr.len);
+          if (sr.size) sub.font.size = sr.size;
+          if (sr.color) sub.font.color = sr.color;
+          if (sr.bold != null) sub.font.bold = !!sr.bold;
+        }
+      }
       if (!p.bold && p.boldRanges && p.boldRanges.length) {
         for (const [s, l] of p.boldRanges) if (l > 0 && s + l <= p.text.length) tr.getSubstring(s, l).font.bold = true;
       }
