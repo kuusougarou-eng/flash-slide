@@ -703,6 +703,33 @@
           }
           fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probe: true, requirementSets: req, shapeAdders: shapeApi, hasChartInNamespace: typeof PowerPoint !== "undefined" && Object.keys(PowerPoint).filter((k) => /chart/i.test(k)) }) }).catch(() => {});
           return;
+        } else if (t.hint === "probeindent") {
+          // 開発用: 段落ごとに字下げ(indentLevel)を変えられるかを実機の描画で見る。
+          // API は例外を出さないので、箱を残して PNG で目視する(確認後は probeclean で消す)
+          await PowerPoint.run(async (ctx) => {
+            const slide = ctx.presentation.slides.getItemAt(Number(t.i) || 0);
+            const text = "親項目 1\n子項目 1-1\n子項目 1-2\n親項目 2";
+            const box = slide.shapes.addTextBox(text, { left: 60, top: 120, width: 500, height: 200 });
+            box.name = "FS_probeindent";
+            const tr = box.textFrame.textRange;
+            tr.font.size = 18;
+            tr.paragraphFormat.bulletFormat.visible = true;
+            const from = "親項目 1\n".length;
+            const len = "子項目 1-1\n子項目 1-2".length;
+            tr.getSubstring(from, len).paragraphFormat.indentLevel = 1; // 2〜3 段落目だけ 1 段下げたい
+            await ctx.sync();
+          });
+          fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probeindent: "drawn" }) }).catch(() => {});
+          return;
+        } else if (t.hint === "probeclean") {
+          await PowerPoint.run(async (ctx) => {
+            const shapes = ctx.presentation.slides.getItemAt(Number(t.i) || 0).shapes;
+            shapes.load("items/name");
+            await ctx.sync();
+            shapes.items.filter((s) => /^FS_probe/.test(s.name)).forEach((s) => s.delete());
+            await ctx.sync();
+          });
+          return;
         } else if (t.hint === "probepara") {
           // 開発用: 段落まわりの API 面を実機で確認する(段落間隔・行間・ぶら下げが設定できるか)。
           // 使い捨てのテキストボックスを自分で作って試し、最後に必ず消す(参照デッキの中身は触らない)
