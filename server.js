@@ -69,7 +69,7 @@ app.get("/api/models", async (req, res) => {
 
 app.post("/api/generate", async (req, res) => {
   const t0 = Date.now();
-  const { prompt = "", context = "", hint = "", model = "", mock = false, maxSlides = 2, variant = 0 } = req.body || {};
+  const { prompt = "", context = "", hint = "", model = "", mock = false, maxSlides = 2, variant = 0, allowSections = true } = req.body || {};
   const c = llm.cfg();
   const useMock = mock === true || req.query.mock === "1" || !c.configured;
   const intent = ["auto", "matrix", "outline", "relational"][Math.max(0, Math.min(3, Math.trunc(Number(variant) || 0)))];
@@ -88,10 +88,24 @@ app.post("/api/generate", async (req, res) => {
       meta = { model: "mock", usage: null, mock: true };
     } else {
       if (!prompt.trim() && !context.trim()) return res.status(400).json({ error: "prompt が空です" });
-      const messages = buildMessages({ prompt, context, hint, maxSlides, variant });
+      const messages = buildMessages({ prompt, context, hint, maxSlides, variant, allowSections });
       const r = await llm.chat({ messages, model: model || undefined, maxTokens: 3000, temperature: 0.2, jsonMode: true });
       raw = extractJson(r.content);
       meta = { model: r.model, usage: r.usage, mock: false, endpoint: r.url };
+      // 章立ての 1 章分では sections を受け付けない。章がさらに章立てを返すと、その章のスライドが 0 枚のまま黙って落ちる
+      if (!allowSections && raw && Array.isArray(raw.sections) && raw.sections.length && !(Array.isArray(raw.slides) && raw.slides.length)) {
+        const msgsNo = messages.concat([
+          { role: "assistant", content: JSON.stringify(raw) },
+          { role: "user", content: "sections は返さないでください。この依頼は章立ての 1 章分です。上で章に分けた内容を一切落とさず、slides(1〜2 枚)の JSON だけを返してください。" },
+        ]);
+        const rNo = await llm.chat({ messages: msgsNo, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+        const rawNo = extractJson(rNo.content);
+        if (rawNo && ((Array.isArray(rawNo.slides) && rawNo.slides.length) || rawNo.title)) {
+          raw = rawNo;
+          meta.usage = { prompt_tokens: ((r.usage && r.usage.prompt_tokens) || 0) + ((rNo.usage && rNo.usage.prompt_tokens) || 0), completion_tokens: ((r.usage && r.usage.completion_tokens) || 0) + ((rNo.usage && rNo.usage.completion_tokens) || 0) };
+          console.log("[density] chapter re-asked for slides (sections not allowed)");
+        }
+      }
       // 密度チェック: 1 枚に収めると全体を 3pt 以上縮めるか溢れるなら、2 枚に分けるよう 1 回だけ再依頼する(情報を落とさず、文字を小さくしない)
       const maxN = Math.max(1, Math.min(2, Number(maxSlides) || 2));
       const first = shapeResponse(raw, normalizeResponseSpec, maxN);
@@ -152,7 +166,7 @@ app.post("/api/generate", async (req, res) => {
           // 最終確認: 2 枚構成でもまだ縮めないと入らない/溢れるなら、文字を潰して押し込む代わりに
           // 章立て(sections)へ切り替える(情報量が2枚という器を超えている。1〜2 枚に収める試みは既に上で尽くした)
           const finalCheck = shapeResponse(raw, normalizeResponseSpec, maxN);
-          if (finalCheck.slides && finalCheck.slides.length) {
+          if (allowSections && finalCheck.slides && finalCheck.slides.length) {
             const stillDense = finalCheck.slides.some((s) => {
               try {
                 const lay2 = SlideLayout.layout(s, { width: 960, height: 540, profile: { bodyFontSize: 14 } });

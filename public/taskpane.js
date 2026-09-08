@@ -582,10 +582,13 @@
             model: $("model").value,
             mock,
             maxSlides: 2,
+            allowSections: false,
           })
         )
       );
       btn.querySelector("span").textContent = "描画中…";
+      // 章が 1 枚も返さなかったら黙って落とさない(章がさらに章立てを返して 0 枚になる事故が実機で出た)
+      const empty = secs.filter((s, i) => !(gens[i].slides || []).length).map((s, i) => s.title);
       const specs = gens.flatMap((g) => g.slides || []);
       lastSpecs = specs;
       const results = await SlideRender.renderSpecs(specs, { prepared, palette: palette(), layoutId: $("layout").value || undefined });
@@ -597,6 +600,7 @@
       setDone(true);
       showResult(specs, results, { model: gens[0].model, mock: gens[0].mock, ms: Math.max.apply(null, gens.map((g) => g.ms)) }, total);
       showCandidates(0, true);
+      if (empty.length) showError("次の章は生成できませんでした: " + empty.join(" / "));
       results.forEach((r, i) => r.png && debugSnapshot(r.png, "section-" + (i + 1)));
     } catch (e) {
       idle(btn, t0, "この構成で生成");
