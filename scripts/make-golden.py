@@ -25,7 +25,7 @@ from lxml import etree
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--master", default=r"C:\Users\nakaj\Documents\プロジェクトアプローチ.pptx")
-ap.add_argument("--out", default="docs/golden/golden-v2.pptx")
+ap.add_argument("--out", default="docs/golden/golden.pptx")
 ap.add_argument("--only", default="")
 A = ap.parse_args()
 
@@ -48,7 +48,7 @@ BB = 488            # 本文域の下端
 BH = BB - BY        # 360
 SRC_Y = 494
 # 文字階層
-T_H1, T_H2, T_BODY, T_SMALL, T_NOTE, T_KPI = 13, 11.5, 10.5, 9, 8.5, 28
+T_H1, T_H2, T_BODY, T_SMALL, T_NOTE, T_KPI = 14, 12.5, 11.5, 9.5, 8.5, 30
 
 def pt(v):
     return Emu(int(round(v * 12700)))
@@ -331,7 +331,7 @@ def s02_two_panel():
         "**3 つの課題はいずれも「基準がなく担当者任せ」に帰着する。** 打ち手は人を増やすのではなく、基準(上限・廃番・配送ルール)を明文化して仕組みに載せる",
         "**効果の合計は営業利益率 +4.3pt(FY27)。** 投資 4.8 億円のうち 3.1 億円は拠点集約で、6 月の投資判断を経て着手する",
         "**打ち手の順序は値引き → SKU → 拠点。** 前の 2 つは投資が小さく 3 か月で効果が出るため、拠点集約の投資判断の材料(粗利の回復実績)になる",
-    ], size=11), size=11)
+    ], size=12), size=12)
     source(s, "出典: 営業日報 12,400 件(FY2025)、拠点別原価集計、顧客ヒアリング 31 社(2026 年 5〜6 月)")
 
 # =====================================================================
@@ -613,10 +613,10 @@ def s09_vertical_enum():
     for k, ((y, rh), (t, d, o, kpi, e)) in enumerate(zip(rows_fill(BY + 32, BB, 5, 6), items)):
         shape_text(rect(s, x_num, y, 30, 30, fill=DARK if k < 2 else LIGHT), f"{k + 1:02d}", 12, True, WHITE if k < 2 else INK)
         text(s, x_t, y, w_t, rh, t, size=13, bold=True, margins=(0, 0, 4, 0))
-        text(s, x_d, y, x_o - x_d - 8, rh, d, size=11, margins=(0, 0, 0, 0))
+        text(s, x_d, y, x_o - x_d - 8, rh, d, size=12, margins=(0, 0, 0, 0))
         text(s, x_o, y, w_o, rh, o, size=T_BODY, color=DARK, margins=(0, 0, 0, 0))
         text(s, x_k, y, w_k, rh, kpi, size=T_BODY, margins=(0, 0, 0, 0))
-        text(s, x_e, y, w_e, rh, e, size=16, bold=True, align=PP_ALIGN.RIGHT, margins=(0, 0, 0, 0))
+        text(s, x_e, y, w_e, rh, e, size=18, bold=True, align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
         line(s, BX, y + rh + 3, BX + BW, y + rh + 3, color=LIGHT)
     source(s, "出典: 分科会別の実行計画(2026 年 8 月版)。効果は FY2027 通期の営業利益への寄与")
 
@@ -743,11 +743,12 @@ def s13_gantt():
     lw, ow = 170, 96; gx = BX + lw; gw = BW - lw - ow
     months = ["4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月", "4月", "5月", "6月"]
     pw_ = gw / len(months)
-    band(s, gx, BY, pw_ * 12 - 2, 16, "2026 年度", fill=LIGHT, color=INK, size=9)
-    band(s, gx + pw_ * 12, BY, pw_ * 3 - 2, 16, "2027 年度", fill=LIGHT, color=INK, size=9)
+    # 時間軸は年度=濃灰の帯、月=淡灰のマルチカラムで二段の見出しにする(1段だけの素の文字より版面が締まる)
+    band(s, gx, BY, pw_ * 12 - 2, 16, "2026 年度", fill=DARK, color=WHITE, size=T_SMALL)
+    band(s, gx + pw_ * 12, BY, pw_ * 3 - 2, 16, "2027 年度", fill=DARK, color=WHITE, size=T_SMALL)
     for i, m in enumerate(months):
-        text(s, gx + pw_ * i, BY + 18, pw_, 14, m, size=T_NOTE, bold=True, align=PP_ALIGN.CENTER, margins=(0, 0, 0, 0))
-    text(s, gx + gw, BY + 18, ow, 14, "担当", size=T_NOTE, bold=True, margins=(4, 0, 0, 0))
+        band(s, gx + pw_ * i, BY + 16, pw_ - 2, 18, m, fill=LIGHT, color=INK, size=T_SMALL)
+    band(s, gx + gw, BY + 16, ow - 2, 18, "担当", fill=LIGHT, color=INK, size=T_SMALL)
     line(s, BX, BY + 34, BX + BW, BY + 34, color=DARK, w=1)
     tasks = [("値引き承認制の導入", 0, 2, "営業本部", True), ("顧客ランク別の上限設定", 1, 2, "営業本部", False), ("SKU 廃番 第 1 弾(900 点)", 1, 4, "商品企画", False),
              ("SKU 廃番 第 2 弾(640 点)", 6, 9, "商品企画", False), ("小口配送の統合", 2, 5, "SCM 部", False), ("拠点集約: 設計・投資判断", 2, 5, "SCM 部", True),
@@ -976,8 +977,8 @@ def s18_issue_tree():
             shape_text(sp, t, T_BODY, True, WHITE if dark else INK)
     x0, w0 = BX, 120; x1, w1 = BX + 150, 120; x2, w2 = BX + 300, 250; x3 = BX + 570; w3 = BX + BW - x3
     hdr_y = BY
-    band(s, x2, hdr_y, w2, 18, "論点", fill=LIGHT, color=INK, size=9)
-    band(s, x3, hdr_y, w3, 18, "仮説の検証結果(粗利率への影響)", fill=LIGHT, color=INK, size=9, align=PP_ALIGN.LEFT)
+    band(s, x2, hdr_y, w2, 18, "論点", fill=LIGHT, color=INK, size=T_SMALL)
+    band(s, x3, hdr_y, w3, 18, "仮説の検証結果(粗利率への影響)", fill=LIGHT, color=INK, size=T_SMALL, align=PP_ALIGN.LEFT)
     foot_h = 40
     leaves = [("売る側", [("価格: 値引きが拡大していないか", "**2.7pt** 平均値引き 4.8% → 9.7%。上位 20 顧客に 73% 集中", "検証済"),
                         ("商品: SKU が増えて非効率になっていないか", "**0.6pt** 3,860 SKU、段取り月 1,900 回。下位 40% は売上 3.2%", "検証済"),
@@ -1137,13 +1138,13 @@ def s22_case_study():
     x0 = BX + pw + 16; cols = cols_fill(x0, BX + BW - x0, 3, 26)
     heads = ["課題", "アプローチ", "効果"]
     contents = [
-        bullets(["#値引きの野放し", "平均値引き率 8.9%、上位顧客で 12% 超", "承認プロセスがなく、事後の集計のみ", "#物流拠点 7 か所の過剰", "稼働率 52%、小口配送が 45%", "拠点間の横持ちが月 410 便", "#SKU 4,200 点", "下位 40% は売上の 4%、廃番基準なし", "#評価は売上高のみ", "粗利・値引きは評価に反映されず"], size=11),
-        bullets(["#承認制を 3 か月で導入", "5% 以下は自動承認、超過は本部が 1 営業日", "顧客ランク別上限(10/6/3%)", "申請時に案件粗利を表示", "#拠点を 7 → 3 に 14 か月で集約", "上位 40 社 + 120km 圏で翌日配送を維持", "並行稼働 5 か月、在庫 +1.1 億円", "#SKU を 3 段階で 2,500 点に", "代替品対応表と顧客への事前照会", "#2 年目に評価へ粗利を追加"], size=11),
-        bullets(["#値引き率 8.9% → 4.8%(8 か月)", "粗利率 +3.4pt。超過申請は初月 38% → 3 か月で 14%", "#物流費率 10.1% → 8.6%", "年 9.3 億円削減、投資 4.2 億円、回収 6 か月", "離反は 3 社(売上 1.2 億円)", "#SKU 集約で段取り −35%", "稼働率 +5pt、在庫回転 +0.8 回", "#営業利益率 3.1% → 7.8%", "2 年で +4.7pt。従業員満足度も +6pt"], size=11),
+        bullets(["#値引きの野放し", "平均値引き率 8.9%、上位顧客で 12% 超", "承認プロセスがなく、事後の集計のみ", "#物流拠点 7 か所の過剰", "稼働率 52%、小口配送が 45%", "拠点間の横持ちが月 410 便", "#SKU 4,200 点", "下位 40% は売上の 4%、廃番基準なし", "#評価は売上高のみ", "粗利・値引きは評価に反映されず"], size=12),
+        bullets(["#承認制を 3 か月で導入", "5% 以下は自動承認、超過は本部が 1 営業日", "顧客ランク別上限(10/6/3%)", "申請時に案件粗利を表示", "#拠点を 7 → 3 に 14 か月で集約", "上位 40 社 + 120km 圏で翌日配送を維持", "並行稼働 5 か月、在庫 +1.1 億円", "#SKU を 3 段階で 2,500 点に", "代替品対応表と顧客への事前照会", "#2 年目に評価へ粗利を追加"], size=12),
+        bullets(["#値引き率 8.9% → 4.8%(8 か月)", "粗利率 +3.4pt。超過申請は初月 38% → 3 か月で 14%", "#物流費率 10.1% → 8.6%", "年 9.3 億円削減、投資 4.2 億円、回収 6 か月", "離反は 3 社(売上 1.2 億円)", "#SKU 集約で段取り −35%", "稼働率 +5pt、在庫回転 +0.8 回", "#営業利益率 3.1% → 7.8%", "2 年で +4.7pt。従業員満足度も +6pt"], size=12),
     ]
     for k, ((x, w), h, c) in enumerate(zip(cols, heads, contents)):
         y0 = panel_head(s, x, BY, w, h)
-        text(s, x, y0 + 6, w, BB - y0 - 6 - 40, c, size=11)
+        text(s, x, y0 + 6, w, BB - y0 - 6 - 40, c, size=12)
         if k < 2:
             rect(s, x + w + 6, BY + 4, 14, 16, fill=DARK, shape=MSO_SHAPE.RIGHT_ARROW)
     rect(s, x0, BB - 34, BX + BW - x0, 34, fill=PALE)
@@ -1212,7 +1213,7 @@ def s24_deliverables():
         text(s, x, BY + fh + 10, w, 22, name, size=T_H2, bold=True, align=PP_ALIGN.CENTER, margins=(0, 0, 0, 0))
         line(s, x, BY + fh + 34, x + w, BY + fh + 34, color=INK, w=1.5)
         text(s, x, BY + fh + 40, w, 30, [(f"提出: {due}", {"size": T_SMALL, "color": DARK}), (f"分量: {pages}", {"size": T_SMALL, "color": DARK})], margins=(0, 0, 0, 0))
-        text(s, x, BY + fh + 74, w, BB - BY - fh - 74 - 90, bullets(bl, size=11), size=11)
+        text(s, x, BY + fh + 74, w, BB - BY - fh - 74 - 90, bullets(bl, size=12), size=12)
     # 提出スケジュール(時間軸)
     ty = BB - 80
     band(s, BX, ty, BW, 20, "提出スケジュールと承認の場", align=PP_ALIGN.LEFT, size=T_BODY)
@@ -1245,7 +1246,7 @@ def s25_goals():
     mx = BX + lw_ + gap
     rect(s, mx, BY, mw, BH, fill=DARK)
     text(s, mx + 12, BY + 16, mw - 24, 40, "目的", size=T_H1, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    text(s, mx + 12, BY + 60, mw - 24, 120, "3 年で営業利益率を **2.1% → 6.5%** に戻し、原材料高に耐える収益構造にする", size=14, color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    text(s, mx + 12, BY + 60, mw - 24, 120, "3 年で営業利益率を **2.1% → 6.5%** に戻し、原材料高に耐える収益構造にする", size=15, color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     line(s, mx + 30, BY + 190, mx + mw - 30, BY + 190, color=WHITE, w=0.75)
     text(s, mx + 12, BY + 200, mw - 24, BH - 210, [(t, {"level": 0, "color": WHITE, "size": T_SMALL + 0.5}) for t in ["投資 4.8 億円、回収 14 か月", "第 1 波の効果を FY26 下期に発現", "委員会が月次で投資と中止を判断"]], color=WHITE)
     rect(s, mx + mw + 4, BY + BH / 2 - 10, 14, 20, fill=DARK, shape=MSO_SHAPE.RIGHT_ARROW)
@@ -1256,9 +1257,234 @@ def s25_goals():
         rect(s, gx, y, gw, rh, fill=PALE)
         text(s, gx + 10, y + 4, 90, 14, tag, size=8, color=MUTED, margins=(0, 0, 0, 0))
         text(s, gx + 10, y + 16, 110, rh - 20, k, size=T_H2, bold=True, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
-        text(s, gx + 120, y, 90, rh, v, size=T_KPI, bold=True, color=ACCENT, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        text(s, gx + 120, y, 90, rh, v, size=T_KPI, bold=True, color=ACCENT, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
         text(s, gx + 214, y, gw - 224, rh, d, size=T_SMALL + 0.5, color=DARK, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
     source(s, "出典: プロジェクト提案書(2026 年 8 月版)、X 社 財務データ(FY2022〜FY2025)")
+
+# =====================================================================
+# ここから: 外部カタログ(consulting-pptx-skill の 62 型)を参考に追加した型
+# =====================================================================
+@slide
+def s26_decision_page():
+    s = new_slide("推進委員会には、拠点集約案(投資 3.1 億円)への投資可否と、値引き承認制の全社適用日の 2 点をご決定いただきたい",
+                  "現状分析と施策の全体方針は 8 月の委員会で承認済みで、本日の論点は個別の実行判断のみ。前提を含め本紙で完結する")
+    lw_ = 360
+    text(s, BX, BY, lw_, 16, "本日の依頼", size=T_SMALL, bold=True, color=MUTED, margins=(0, 0, 0, 0))
+    text(s, BX, BY + 18, lw_, 90, "拠点集約案への投資可否と、値引き承認制の全社適用日を、本日中にご決定いただきたい", size=20, bold=True)
+    y0 = BY + 116
+    text(s, BX, y0, lw_, 16, "前提(本日は再協議しない事項)", size=T_SMALL, bold=True, color=DARK, margins=(0, 0, 0, 0))
+    line(s, BX, y0 + 18, BX + lw_, y0 + 18, color=INK, w=0.75)
+    text(s, BX, y0 + 22, lw_, BB - y0 - 22, bullets([
+        "利益低下 6.1pt の要因分解(値引き 2.7pt・物流 1.5pt・SKU 0.6pt・原材料 1.8pt)は確定済み",
+        "3 施策を第 1〜3 波に分ける全体方針は 8 月の委員会で承認済み",
+        "第 1 波(値引き承認制・SKU 廃番第 1 弾・小口統合)はすでに実行中で、本日の決定対象に含まない",
+    ]), size=T_BODY)
+    rx = BX + lw_ + 28; rw = BX + BW - rx
+    items = [
+        ("拠点集約(3 拠点案)に投資 3.1 億円を承認するか", "承認すれば 10 月に並行稼働を開始し FY27 に +1.1pt。見送れば物流費率の改善が止まる", "根拠: 案の比較は P.6、投資回収は P.16 に詳細", "9/26 委員会"),
+        ("値引き承認制の全社適用を 6/1 にするか、7/1 に延期するか", "1 か月延期すると年間効果が 0.4 億円減る。延期の理由は審査担当の増員が間に合わないこと", "根拠: 導入状況は P.17、業務フローは P.12 に詳細", "9/9 委員会"),
+        ("保留 SKU 180 点の扱い(代替品提示ありは廃番、専用品は個別協議)を承認するか", "承認すれば第 2 弾 640 点の対象が確定し、10 月着手に間に合う", "根拠: 保留の経緯は P.19 の決定依頼 1 に詳細", "9/9 委員会"),
+    ]
+    for (y, rh), (ask, impact, ref, due) in zip(rows_fill(BY, BB, 3, 8), items):
+        shape_text(rect(s, rx, y, 30, 30, fill=ACCENT), "?", 15, True, WHITE)
+        text(s, rx + 40, y, rw - 40, 40, ask, size=14, bold=True)
+        text(s, rx + 40, y + 44, rw - 40, rh - 82, impact, size=T_BODY, color=DARK)
+        text(s, rx + 40, y + rh - 34, rw - 40, 16, ref, size=T_SMALL, color=MUTED)
+        text(s, rx + 40, y + rh - 16, rw - 40, 16, f"期限: {due}", size=T_SMALL, bold=True, color=DARK)
+        line(s, rx, y + rh + 5, rx + rw, y + rh + 5, color=LIGHT)
+    rect(s, BX, BB - 34, lw_, 34, fill=PALE)
+    text(s, BX + 8, BB - 34, lw_ - 16, 34, "**承認後の進め方:** 委員会の議事録を PMO が即日展開し、分科会は翌営業日から実行に着手する", size=T_SMALL + 0.5, anchor=MSO_ANCHOR.MIDDLE)
+    source(s, "出典: プロジェクト提案書(2026 年 8 月版)。決定事項の期限は分科会の実行計画から逆算")
+
+# =====================================================================
+@slide
+def s27_risk_table():
+    s = new_slide("実行リスクは 4 つに集約でき、兆候を月次で監視して早期に打ち手を発動する",
+                  "リスクごとに早期警戒サイン(兆候)と打ち手を対にして PMO の月次報告に組み込む。深刻度は影響額と発生しやすさから 3 段階で評価")
+    hdr = [("深刻度", 56), ("リスク", 220), ("兆候(早期警戒サイン)", 260), ("打ち手", BW - 56 - 220 - 260)]
+    x = BX
+    for lab, w in hdr:
+        band(s, x, BY, w - 4, 22, lab, align=PP_ALIGN.CENTER if lab == "深刻度" else PP_ALIGN.LEFT); x += w
+    rows = [
+        ("高", "拠点集約の並行稼働トラブル", "納期遵守率が 98% を下回る、在庫欠品が増える", "出荷を上位 50 社優先へ切替。物流会社に応援便を要請し、遅延を 48 時間以内に解消する"),
+        ("中", "値引き承認制への現場の抵抗", "超過申請比率が 15% を超える、口頭値引きの噂が出る", "本部審査を 2 名増員し回答を 1 営業日以内に維持。例外基準を明文化し拠点説明会を追加する"),
+        ("中", "SKU 代替品の受け入れ不良", "主要顧客からの離反打診、返品率の上昇", "代替品の無償サンプルを提供。受け入れが得られない顧客は廃番を 1 四半期延期する"),
+        ("低", "医療機器認証の遅延", "認証機関からの追加資料要求、想定期日の超過", "外部認証コンサルを追加投入。初年度受注目標(3 億円)を認証時期に応じて見直す"),
+    ]
+    for (y, rh), (sev, risk, sign, action) in zip(rows_fill(BY + 28, BB, 4, 6), rows):
+        col = {"高": ACCENT, "中": DARK, "低": MID}[sev]
+        x = BX
+        shape_text(rect(s, x + 8, y + rh / 2 - 11, 40, 22, fill=col), sev, T_SMALL, True, WHITE); x += 56
+        text(s, x, y, 216, rh, risk, size=T_H2, bold=True, anchor=MSO_ANCHOR.MIDDLE, margins=(4, 2, 4, 2)); x += 220
+        text(s, x, y, 256, rh, sign, size=T_BODY, anchor=MSO_ANCHOR.MIDDLE, margins=(4, 2, 4, 2)); x += 260
+        text(s, x, y, BW - 56 - 220 - 260 - 4, rh, action, size=T_BODY, anchor=MSO_ANCHOR.MIDDLE, margins=(4, 2, 4, 2))
+        line(s, BX + 56, y + rh + 3, BX + BW, y + rh + 3, color=LIGHT)
+    source(s, "出典: リスク管理表(2026 年 8 月版、PMO 作成)。深刻度は影響額 × 発生しやすさで 3 段階評価")
+
+# =====================================================================
+@slide
+def s28_scenario_table():
+    s = new_slide("価格転嫁の成否と拠点集約の進捗によって、FY27 の営業利益率は 5.8〜7.4% の範囲になる",
+                  "基本シナリオ(計画通りに 3 施策を実行)を投資判断の前提とし、楽観・悲観の幅は 9〜10 月の検証結果を待って早期に確定する")
+    hdr = [("シナリオ", 130), ("主な前提", 460), ("営業利益率(FY27)", 140), ("発生確率の目安", BW - 130 - 460 - 140)]
+    x = BX
+    for lab, w in hdr:
+        band(s, x, BY, w - 4, 24, lab, align=PP_ALIGN.LEFT if lab != "シナリオ" else PP_ALIGN.CENTER); x += w
+    rows = [
+        ("楽観", DARK, "上位 20 社の半数が価格改定 3〜5% を受諾。拠点集約は 3 月に予定通り完了", "7.4%", "約 30%"),
+        ("基本(計画)", ACCENT, "3 施策(値引き・SKU・拠点)を計画通り実行。価格転嫁は行わない", "6.5%", "約 50%"),
+        ("悲観", MID, "拠点集約が 3 か月遅延し、価格転嫁もできない", "5.8%", "約 20%"),
+    ]
+    for (y, rh), (name, col, premise, roe, prob) in zip(rows_fill(BY + 30, BB - 46, 3, 10), rows):
+        x = BX
+        shape_text(rect(s, x, y, 126, rh, fill=col), name, T_H2, True, WHITE); x += 130
+        text(s, x, y, 456, rh, premise, size=T_BODY, anchor=MSO_ANCHOR.MIDDLE, margins=(6, 2, 6, 2)); x += 460
+        text(s, x, y, 136, rh, roe, size=20, bold=True, color=col if col != ACCENT else ACCENT, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE); x += 140
+        text(s, x, y, BW - 130 - 460 - 140 - 4, rh, prob, size=T_H2, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    y = BB - 40
+    rect(s, BX, y, BW, 40, fill=PALE)
+    text(s, BX + 8, y, BW - 16, 40, "**投資判断は基本シナリオ(6.5%)を前提に行う。** 楽観シナリオの上振れ(+0.9pt)は 9 月の顧客交渉、悲観シナリオの下振れ回避は拠点集約の進捗管理で対応する", size=T_BODY, anchor=MSO_ANCHOR.MIDDLE)
+    source(s, "出典: プロジェクト提案書のシナリオ分析(2026 年 8 月版)。確率は施策担当者へのヒアリングに基づく目安")
+
+# =====================================================================
+@slide
+def s29_status_heatmap():
+    s = new_slide("4 指標はすべて改善方向にあり、物流費率だけが計画比で足踏みしている",
+                  "4 月から 8 月の前月比の改善度を 5 段階の濃淡で示した。値引き率と小口配送比率は毎月安定して改善し、物流費率は 7 月に足踏みした")
+    hw = 140; months = ["4月", "5月", "6月", "7月", "8月"]
+    cw = (BW - hw - 260) / len(months)
+    band(s, BX, BY, hw - 4, 22, "指標", align=PP_ALIGN.LEFT)
+    for i, m in enumerate(months):
+        band(s, BX + hw + cw * i, BY, cw - 4, 22, m, fill=LIGHT, color=INK, size=T_BODY)
+    band(s, BX + hw + cw * len(months) + 8, BY, 252, 22, "だから、次に見るべき点", align=PP_ALIGN.LEFT)
+    rows = [
+        ("値引き率", [3, 3, 4, 3, 3]),
+        ("SKU 数", [2, 3, 2, 2, 3]),
+        ("小口配送比率", [2, 3, 3, 3, 2]),
+        ("物流費率", [1, 2, 3, 0, 2]),
+    ]
+    levels = {4: DARK, 3: RGBColor(0x8A, 0x8A, 0x8A), 2: MID, 1: LIGHT, 0: PALE}
+    rh_rows = rows_fill(BY + 28, BB, 4, 6)
+    for (y, rh), (label, vals) in zip(rh_rows, rows):
+        rowhead(s, BX, y, hw - 4, rh, label, size=T_BODY)
+        for i, v in enumerate(vals):
+            fillc = levels[v]
+            txtc = WHITE if v >= 3 else INK
+            rect(s, BX + hw + cw * i, y, cw - 4, rh, fill=fillc)
+            text(s, BX + hw + cw * i, y, cw - 4, rh, ["横ばい", "やや改善", "改善", "改善", "大きく改善"][v], size=T_NOTE, color=txtc, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+    cx = BX + hw + cw * len(months) + 8
+    text(s, cx, BY + 28, 252, BB - BY - 28, bullets([
+        "値引き率と小口配送比率は毎月改善が続き、承認制と統合便の定着を示す",
+        "物流費率は 7 月に足踏み(統合便の契約遅れ)。8 月に改善が再開しており、9 月の契約締結で計画に復帰する見込み",
+        "SKU 数は 6 月に伸びが鈍化。保留 180 点の判断(9 月委員会)で再加速する",
+    ]), size=T_BODY)
+    text(s, BX, BB - 12, 400, 12, "凡例: 大きく改善(濃)→ 横ばい(淡灰)", size=8, color=MUTED, margins=(0, 0, 0, 0))
+    source(s, "出典: PMO 月次報告(2026 年 4〜8 月)。改善度は前月比の変化幅を 5 段階に区分")
+
+# =====================================================================
+@slide
+def s30_proportional_circles():
+    s = new_slide("承認制により、年間の値引き総額は 15.6 億円から 8.0 億円まで圧縮できる",
+                  "現状(FY25 実績)と承認制導入後(FY27 想定)の値引き総額を面積比で対比した。圧縮額 7.6 億円のうち大半は上位 20 顧客への統制で生まれる")
+    band(s, BX, BY, 300, 20, "値引き総額(億円/年)", align=PP_ALIGN.LEFT)
+    items = [("現状(FY25 実績)", "15.6", 15.6, MID), ("承認制導入後(FY27 想定)", "8.0", 8.0, ACCENT)]
+    cx0 = BX + 160; gap = 220; maxd = 130
+    top0 = BY + 40
+    scale = maxd / (max(v for _, _, v, _ in items) ** 0.5)
+    for i, (head, val, raw, col) in enumerate(items):
+        cx = cx0 + i * gap
+        d = (raw ** 0.5) * scale
+        dot(s, cx, top0 + maxd / 2, d, col)
+        text(s, cx - 90, BY + 24, 180, 16, head, size=T_H2, bold=True, align=PP_ALIGN.CENTER, margins=(0, 0, 0, 0))
+        text(s, cx - 60, top0 + maxd / 2 - 16, 120, 32, val, size=22, bold=True, color=WHITE if col != MID else INK, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        text(s, cx - 90, top0 + maxd + 6, 180, 14, "億円/年", size=T_SMALL, color=MUTED, align=PP_ALIGN.CENTER, margins=(0, 0, 0, 0))
+    rect(s, cx0 + gap / 2 - 10, top0 + maxd / 2 - 8, 20, 16, fill=DARK, shape=MSO_SHAPE.RIGHT_ARROW)
+    rx = cx0 + gap * 2 - 20; rw = BX + BW - rx
+    band(s, rx, BY, rw, 20, "内訳", align=PP_ALIGN.LEFT)
+    text(s, rx, BY + 28, rw, top0 + maxd - BY, bullets([
+        "#圧縮 7.6 億円の内訳",
+        "上位 20 顧客の個別値引き是正で 5.3 億円(承認制の主効果)",
+        "下位顧客の一律値引き是正で 1.4 億円",
+        "顧客ランク別上限の徹底で 0.9 億円",
+    ]), size=T_BODY)
+    ay = top0 + maxd + 32
+    band(s, BX, ay, BW, 22, "顧客区分別の値引き総額(億円/年)", align=PP_ALIGN.LEFT)
+    cols = [("顧客区分", 220), ("現状(FY25)", 200), ("承認制導入後(FY27)", 220), ("差分・根拠", BW - 220 - 200 - 220)]
+    x = BX
+    for lab, w in cols:
+        text(s, x, ay + 24, w - 4, 16, lab, size=T_SMALL, bold=True, color=DARK, margins=(0, 0, 0, 0)); x += w
+    line(s, BX, ay + 42, BX + BW, ay + 42, color=INK, w=0.75)
+    rows2 = [("A ランク(上位 20 社)", "11.4 億円", "6.1 億円", "−5.3 億円: 上限 8% を徹底"), ("B ランク(84 社)", "3.0 億円", "1.5 億円", "−1.5 億円: 上限 5% を徹底"), ("C ランク(228 社)", "1.2 億円", "0.4 億円", "−0.8 億円: 上限 3% を徹底")]
+    for (y, rh), (seg, a, b, note) in zip(rows_fill(ay + 46, BB, 3, 4), rows2):
+        text(s, BX, y, 216, rh, seg, size=T_BODY, bold=True, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        text(s, BX + 220, y, 196, rh, a, size=T_BODY, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        text(s, BX + 420, y, 216, rh, b, size=T_BODY, bold=True, color=ACCENT, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        text(s, BX + 636, y, BW - 636, rh, note, size=T_SMALL + 0.5, color=DARK, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        line(s, BX, y + rh + 2, BX + BW, y + rh + 2, color=LIGHT)
+    source(s, "出典: 営業日報 12,400 件(FY2025)の値引き実績、承認制の効果試算(FY2027)")
+
+# =====================================================================
+@slide
+def s31_ranked_bar():
+    s = new_slide("6 拠点の稼働率は 32〜81% とばらつき、下位 4 拠点が集約対象になる",
+                  "稼働率の低い拠点から順に並べた。目標の 75% を上回るのは上位 2 拠点のみで、3 拠点集約案はこの 2 拠点を核に再編する")
+    cw = 560
+    band(s, BX, BY, cw, 20, "拠点別の稼働率(%)", align=PP_ALIGN.LEFT)
+    bars = [("東京", 81, True), ("大阪", 76, True), ("名古屋", 68, False), ("福岡", 61, False), ("仙台", 45, False), ("札幌", 32, False)]
+    maxw = cw - 200
+    rh_rows = rows_fill(BY + 30, BB - 20, len(bars), 6)
+    for (y, rh), (name, val, keep) in zip(rh_rows, bars):
+        text(s, BX, y, 60, rh, name, size=T_BODY, bold=True, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        bw_ = maxw * val / 100
+        rect(s, BX + 64, y + rh * 0.2, bw_, rh * 0.6, fill=ACCENT if keep else MID)
+        text(s, BX + 64 + bw_ + 6, y, 60, rh, f"{val}%", size=T_BODY, bold=True, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+        if not keep:
+            text(s, BX + 64 + maxw + 70, y, 100, rh, "集約対象", size=T_SMALL, color=DARK, anchor=MSO_ANCHOR.MIDDLE, margins=(0, 0, 0, 0))
+    tx = BX + 64 + maxw * 75 / 100
+    line(s, tx, BY + 24, tx, BB - 20, color=DARK, w=1, dash=True)
+    text(s, tx - 40, BY + 24, 80, 14, "目標 75%", size=8, color=DARK, align=PP_ALIGN.CENTER, margins=(0, 0, 0, 0))
+    text(s, BX, BB - 16, cw, 12, "■ 濃色 = 維持する拠点(東京・大阪)   ■ 灰 = 3 拠点集約案で統合する対象", size=8, color=MUTED, margins=(0, 0, 0, 0))
+    rx = BX + cw + 24; rw = BX + BW - rx
+    band(s, rx, BY, rw, 20, "読み取り", align=PP_ALIGN.LEFT)
+    text(s, rx, BY + 28, rw, BB - BY - 28, bullets([
+        "#東京・大阪を核に再編する",
+        "両拠点で稼働率 75% 超。集約後の主力拠点として設備投資を優先する",
+        "#下位 4 拠点は集約または閉鎖",
+        "名古屋は主力拠点に統合、福岡は西日本の集約拠点として存続、仙台・札幌は閉鎖し配送を委託",
+        "#リスク",
+        "仙台・札幌の閉鎖で東北・北海道の翌日配送が失われる顧客が 12 社。個別に配送条件を再交渉する",
+    ]), size=T_BODY)
+    source(s, "出典: 拠点別原価集計(FY2025)。稼働率は年間稼働日数に対する実稼働の比率")
+
+# =====================================================================
+@slide
+def s32_scenario_lines():
+    s = new_slide("計画通りの実行でも回復は緩やかで、FY27 の目標到達には前倒しの実行力が要る",
+                  "3 つの実行シナリオで営業利益率の推移を試算した。現状放置では悪化が続き、前倒し実行だけが目標(6.5%)を 1 年早く超える")
+    cw = 560
+    band(s, BX, BY, cw, 20, "営業利益率の推移(%、シナリオ別試算)", align=PP_ALIGN.LEFT)
+    cd = CategoryChartData(); cd.categories = ["FY25", "FY26", "FY27", "FY28"]
+    cd.add_series("前倒し実行", (2.1, 4.8, 7.1, 8.4))
+    cd.add_series("計画通り(基本)", (2.1, 3.6, 6.5, 7.2))
+    cd.add_series("現状放置", (2.1, 1.4, 0.6, -0.3))
+    ch = s.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, pt(BX), pt(BY + 26), pt(cw), pt(BB - BY - 26), cd).chart
+    style_chart(ch, legend=XL_LEGEND_POSITION.BOTTOM, gridlines=True)
+    ch.value_axis.minimum_scale = -2; ch.value_axis.maximum_scale = 10; ch.value_axis.major_unit = 2
+    line_series(ch.series[0], ACCENT, 2.25, pos=XL_LABEL_POSITION.ABOVE)
+    line_series(ch.series[1], DARK, 1.75, pos=XL_LABEL_POSITION.BELOW)
+    line_series(ch.series[2], MID, 1.5, pos=XL_LABEL_POSITION.BELOW)
+    rx = BX + cw + 24; rw = BX + BW - rx
+    band(s, rx, BY, rw, 20, "シナリオごとの含意", align=PP_ALIGN.LEFT)
+    ty = BY + 28
+    rows = [("前倒し実行", ACCENT, "年 +2.1pt", "第 2〜3 波を 3 か月前倒し。FY27 に 7.1% へ到達し、目標を 1 年早く超える"),
+            ("計画通り(基本)", DARK, "年 +1.5pt", "現行計画どおり。FY27 に 6.5% へ到達し、投資判断の前提とする"),
+            ("現状放置", MID, "年 −0.8pt", "3 施策を実行しない場合。原材料高が続けば FY28 に赤字転落の恐れ")]
+    for (y, rh), (name, col, cagr, note) in zip(rows_fill(ty, BB, 3, 8), rows):
+        dot(s, rx + 7, y + 10, 10, col)
+        text(s, rx + 18, y, rw - 90, 18, name, size=T_H2, bold=True, margins=(0, 0, 0, 0))
+        text(s, rx + rw - 72, y, 72, 18, cagr, size=T_BODY, bold=True, color=col if col != DARK else INK, align=PP_ALIGN.RIGHT, margins=(0, 0, 0, 0))
+        text(s, rx + 18, y + 20, rw - 18, rh - 20, note, size=T_SMALL + 0.5, color=DARK, margins=(0, 0, 0, 0))
+    source(s, "出典: プロジェクト提案書のシナリオ分析(2026 年 8 月版)。年平均の変化率は FY25→FY27 の試算値")
 
 # ---------------- 実行 ----------------
 only = [int(x) for x in A.only.split(",") if x.strip()]
