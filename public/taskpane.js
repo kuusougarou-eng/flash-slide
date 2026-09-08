@@ -577,11 +577,11 @@
       const gens = await Promise.all(
         secs.map((s, i) =>
           api("/api/generate", {
-            prompt: `${prompt}\n\n【今回作る章(全 ${secs.length} 章のうち ${i + 1} 章目)】${s.title} — ${s.summary}\nこの章の内容だけを 1 枚にする。他の章の内容は含めない。`,
+            prompt: `${prompt}\n\n【今回作る章(全 ${secs.length} 章のうち ${i + 1} 章目)】${s.title} — ${s.summary}\nこの章の内容だけを載せる。他の章の内容は含めない。文字を縮めないと入らないほど密なら 2 枚に分けてよい(章の中の情報を削らない)。`,
             hint: $("hint").value,
             model: $("model").value,
             mock,
-            maxSlides: 1,
+            maxSlides: 2,
           })
         )
       );

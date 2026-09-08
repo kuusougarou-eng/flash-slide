@@ -95,28 +95,30 @@ app.post("/api/generate", async (req, res) => {
       // 密度チェック: 1 枚に収めると全体を 3pt 以上縮めるか溢れるなら、2 枚に分けるよう 1 回だけ再依頼する(情報を落とさず、文字を小さくしない)
       const maxN = Math.max(1, Math.min(2, Number(maxSlides) || 2));
       const first = shapeResponse(raw, normalizeResponseSpec, maxN);
-      if (maxN >= 2 && first.slides && first.slides.length === 1) {
+      if (maxN >= 2 && first.slides && first.slides.length >= 1) {
         try {
-          const lay = SlideLayout.layout(first.slides[0], { width: 960, height: 540, profile: { bodyFontSize: 14 } });
-          // 「密」= 全体を 3pt 以上縮めても入らない / 格子・ガントが溢れる。部品単位の軽い縮小(shrunk)だけでは分けない(4 段の箱フローを 2 枚に割るような過剰分割を防ぐ)
-          // ガントは行を詰めて 1 枚に収める(分割しない)。格子の溢れと、全体 3pt 以上の縮小だけを「密」とみなす
-          const isGantt = first.slides[0] && first.slides[0].body && first.slides[0].body.type === "gantt";
-          // 「密」= 全体を 3pt 以上縮めないと入らない / 格子が溢れる / 上限で内容が落ちた
-          const dropped = lay.warnings.some((w) => /content dropped|nested list overflow/.test(w)) || lay.prims.some((p) => p.shrunk && p.fontSize < 16);
-          const dense = dropped || (!isGantt && ((lay.fonts.grown || 0) <= -3 || lay.warnings.some((w) => /table overflow/.test(w))));
-          if (dense) {
-            const msgs2 = messages.concat([
-              { role: "assistant", content: JSON.stringify(raw) },
-              { role: "user", content: "上の構成は 1 枚に収まらない密度です(文字を縮めないと入らない)。内容を一切落とさずに slides を 2 枚に分けて JSON だけを返してください。1 枚目=結論と主要な根拠、2 枚目=詳細(格子・残りの項目)。同じ内容を 2 枚で繰り返さない。" },
-            ]);
-            const r2 = await llm.chat({ messages: msgs2, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
-            const raw2 = extractJson(r2.content);
-            const second = shapeResponse(raw2, normalizeResponseSpec, maxN);
-            if (second.slides && second.slides.length === 2) {
-              raw = raw2;
-              meta.split = true;
-              meta.usage = { prompt_tokens: (r.usage && r.usage.prompt_tokens || 0) + (r2.usage && r2.usage.prompt_tokens || 0), completion_tokens: (r.usage && r.usage.completion_tokens || 0) + (r2.usage && r2.usage.completion_tokens || 0) };
-              console.log(`[density] split into 2 slides (grown=${lay.fonts.grown || 0}, warnings=${lay.warnings.length})`);
+          if (first.slides.length === 1) {
+            const lay = SlideLayout.layout(first.slides[0], { width: 960, height: 540, profile: { bodyFontSize: 14 } });
+            // 「密」= 全体を 3pt 以上縮めても入らない / 格子・ガントが溢れる。部品単位の軽い縮小(shrunk)だけでは分けない(4 段の箱フローを 2 枚に割るような過剰分割を防ぐ)
+            // ガントは行を詰めて 1 枚に収める(分割しない)。格子の溢れと、全体 3pt 以上の縮小だけを「密」とみなす
+            const isGantt = first.slides[0] && first.slides[0].body && first.slides[0].body.type === "gantt";
+            // 「密」= 全体を 3pt 以上縮めないと入らない / 格子が溢れる / 上限で内容が落ちた
+            const dropped = lay.warnings.some((w) => /content dropped|nested list overflow/.test(w)) || lay.prims.some((p) => p.shrunk && p.fontSize < 16);
+            const dense = dropped || (!isGantt && ((lay.fonts.grown || 0) <= -3 || lay.warnings.some((w) => /table overflow/.test(w))));
+            if (dense) {
+              const msgs2 = messages.concat([
+                { role: "assistant", content: JSON.stringify(raw) },
+                { role: "user", content: "上の構成は 1 枚に収まらない密度です(文字を縮めないと入らない)。内容を一切落とさずに slides を 2 枚に分けて JSON だけを返してください。1 枚目=結論と主要な根拠、2 枚目=詳細(格子・残りの項目)。同じ内容を 2 枚で繰り返さない。" },
+              ]);
+              const r2 = await llm.chat({ messages: msgs2, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+              const raw2 = extractJson(r2.content);
+              const second = shapeResponse(raw2, normalizeResponseSpec, maxN);
+              if (second.slides && second.slides.length === 2) {
+                raw = raw2;
+                meta.split = true;
+                meta.usage = { prompt_tokens: (r.usage && r.usage.prompt_tokens || 0) + (r2.usage && r2.usage.prompt_tokens || 0), completion_tokens: (r.usage && r.usage.completion_tokens || 0) + (r2.usage && r2.usage.completion_tokens || 0) };
+                console.log(`[density] split into 2 slides (grown=${lay.fonts.grown || 0}, warnings=${lay.warnings.length})`);
+              }
             }
           }
           // 取りこぼしチェック: 入力にあった数値・固有名詞が spec に現れないなら、
@@ -145,6 +147,41 @@ app.post("/api/generate", async (req, res) => {
               console.log(`[coverage] recovered ${lost.length - lost3.length}/${lost.length} dropped items (slides=${(third.slides || []).length})`);
             } else {
               console.log(`[coverage] still missing ${lost3.length}/${want.length + wantTerms.length}: ${lost3.slice(0, 6).join(" / ")}`);
+            }
+          }
+          // 最終確認: 2 枚構成でもまだ縮めないと入らない/溢れるなら、文字を潰して押し込む代わりに
+          // 章立て(sections)へ切り替える(情報量が2枚という器を超えている。1〜2 枚に収める試みは既に上で尽くした)
+          const finalCheck = shapeResponse(raw, normalizeResponseSpec, maxN);
+          if (finalCheck.slides && finalCheck.slides.length) {
+            const stillDense = finalCheck.slides.some((s) => {
+              try {
+                const lay2 = SlideLayout.layout(s, { width: 960, height: 540, profile: { bodyFontSize: 14 } });
+                const dropped2 = lay2.warnings.some((w) => /content dropped|nested list overflow|table overflow/.test(w)) || lay2.prims.some((p) => p.shrunk && p.fontSize < 16);
+                // 格子・表のセルは fitBody を通らず shrunk フラグも grown も付かないまま既定下限(14pt)を割ることがある。
+                // 「縮んだ形跡があるか」ではなく「実際に版面に出ている文字が読める大きさか」を直接見る
+                const bodyFonts = lay2.prims.filter((p) => p.body && p.text && p.fontSize).map((p) => p.fontSize);
+                const tooSmall = bodyFonts.length > 0 && Math.min.apply(null, bodyFonts) < 14;
+                return dropped2 || tooSmall || (lay2.fonts.grown || 0) <= -3;
+              } catch (_) {
+                return false;
+              }
+            });
+            if (stillDense) {
+              const msgsSec = messages.concat([
+                { role: "assistant", content: JSON.stringify(raw) },
+                { role: "user", content: "上の構成は2枚に収めても文字を大きく縮めないと入らない密度です。内容を一切落とさず、章立て(sections)の JSON だけを返してください。入力に列挙されている論点(項目・領域・施策など)がある場合は、1 章に複数の論点を詰め込まず論点数に応じて章を分けてください(3〜8章。論点が8を超える場合も8章までにまとめてよいが、1章に複数論点を無理に押し込めるくらいなら章を増やす方を優先する)。各章の summary にはその章に入れる事実・数値をすべて含めてください。" },
+              ]);
+              const rSec = await llm.chat({ messages: msgsSec, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+              const rawSec = extractJson(rSec.content);
+              if (rawSec && Array.isArray(rawSec.sections) && rawSec.sections.length) {
+                raw = rawSec;
+                meta.escalatedToSections = true;
+                meta.usage = {
+                  prompt_tokens: ((meta.usage && meta.usage.prompt_tokens) || 0) + ((rSec.usage && rSec.usage.prompt_tokens) || 0),
+                  completion_tokens: ((meta.usage && meta.usage.completion_tokens) || 0) + ((rSec.usage && rSec.usage.completion_tokens) || 0),
+                };
+                console.log(`[density] escalated to sections (${rawSec.sections.length} chapters, still dense after 2-slide compression)`);
+              }
             }
           }
         } catch (e) {
