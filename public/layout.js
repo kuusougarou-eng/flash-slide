@@ -2049,6 +2049,9 @@
     // 図 + 意味合いの 2 パネル。ガント・体制図・密な表は幅がいるので単独パネル専用にする
     const PANEL_FIGURES = ["line", "bars", "column", "stacked", "kpi", "table", "matrix", "pyramid"];
     const panel = (n) => {
+      // 正規化は冪等にする。描画側(renderspec トリガ・案の差し替え)は正規化済みの spec をもう一度通すので、
+      // ここで図のパネルを文章に畳んでしまうと図が消える
+      if (n && n._figurePanel) return n;
       const fig = n && n.body && n.body.type && PANEL_FIGURES.includes(n.body.type) ? n.body : null;
       if (fig) {
         const v = normalizeVisual(fig);
