@@ -554,7 +554,7 @@
     if (isContainer(node)) return (node.rows || node.cols).some(isStretch);
     if (isBoxed(node)) return false;
     if (node.type === "cell") return !isFixedCell(node);
-    return !["arrow", "kpi", "org"].includes(node.type);
+    return !["arrow", "kpi", "org", "tree"].includes(node.type);
   }
   const isStretchLeaf = (node) => isStretch(node) && !isContainer(node);
   /** 塗りのある箱(fill / step / takeaway / 濃い kpi)。高さは中身に合わせ、列いっぱいには伸ばさない */
@@ -900,6 +900,11 @@
       case "org": {
         const d = node.root ? orgDepth(node.root) : 1;
         return d * orgBoxH() + (d - 1) * 24;
+      }
+      case "tree": {
+        // 横に伸びる樹形図は、縦の必要量が葉の数で決まる(深さではない)
+        const lv = node.root ? orgLeaves(node.root) : 1;
+        return lv * Math.max(34, FONT.body * 2.2) + (lv - 1) * 8;
       }
       case "ntable": {
         const rows = node.rows || [];
@@ -1684,6 +1689,47 @@
   };
 
   /** 因果の三角: 列間中央に平たい塗り三角 1 つ(ブロック矢印は使わない) */
+  /** 横に伸びる樹形図(論点ツリー)。体制図と同じデータで、根を左に置き右へ展開する。
+   *  深さより葉の数が増えやすい題材(論点分解・施策の優先度)は、縦積みより横展開のほうが 16:9 に収まる。 */
+  LEAF.tree = function (node, r, c) {
+    const P = c.P;
+    const root = node.root;
+    if (!root) return;
+    const depth = orgDepth(root), leaves = orgLeaves(root);
+    const hGap = 16, vGap = 8;
+    const colW = (r.w - hGap * (depth - 1)) / depth;
+    const rowH = (r.h - vGap * (leaves - 1)) / leaves;
+    if (rowH < 24) c.warnings.push("tree overflow: " + leaves + " leaves");
+    const boxH = Math.max(24, Math.min(rowH, 72));
+    const heightOf = (nd) => (nd.children && nd.children.length ? nd.children.reduce((a, k) => a + heightOf(k), 0) + vGap * (nd.children.length - 1) : rowH);
+    const place = (nd, top, level) => {
+      const h = heightOf(nd), cy = top + h / 2, x = r.x + level * (colW + hGap);
+      const dark = level === 0 || nd.highlight;
+      const label = stripBold(nd.label || ""), sub = stripBold(nd.sub || "");
+      c.prims.push(rect(x, cy - boxH / 2, colW, boxH, { fill: dark ? P.fillDark : P.fillLight }));
+      if (sub) {
+        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH * 0.58, label, { fontSize: fitFont(label, colW - 10, boxH * 0.58, FONT.body, FONT.tableMin), bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "bottom", pad: 4, autofit: "none", role: "treelabel" }));
+        c.prims.push(textBox(x, cy - boxH / 2 + boxH * 0.55, colW, boxH * 0.45, sub, { fontSize: fitFont(sub, colW - 12, boxH * 0.45 - 4, FONT.body, FONT.caption), color: dark ? P.textOnDark : P.textMuted, align: "center", valign: "top", pad: 3, autofit: "none", role: "caption" }));
+      } else {
+        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH, label, { fontSize: fitFont(label, colW - 10, boxH, FONT.body, FONT.tableMin), bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 4, autofit: "none", role: "treelabel" }));
+      }
+      const kids = nd.children || [];
+      if (!kids.length) return;
+      const busX = x + colW + hGap / 2;
+      c.prims.push(line(x + colW, cy, busX, cy, P.line, 1)); // 親の右から幹まで
+      let ky = top;
+      const centers = [];
+      kids.forEach((k) => {
+        const kh = heightOf(k);
+        centers.push(ky + kh / 2);
+        place(k, ky, level + 1);
+        ky += kh + vGap;
+      });
+      if (centers.length > 1) c.prims.push(line(busX, centers[0], busX, centers[centers.length - 1], P.line, 1)); // 縦の幹
+      centers.forEach((kcy) => c.prims.push(line(busX, kcy, x + colW + hGap, kcy, P.line, 1))); // 幹から子の左へ
+    };
+    place(root, r.y, 0);
+  };
   LEAF.arrow = function (node, r, c) {
     const dir = node.direction || (node._orientation === "cols" ? "right" : "down");
     // アイコン的に正方形へ収まる小さな三角(細長い矢印にしない)
@@ -1906,9 +1952,9 @@
       c.prims.push(textBox(textX, y, textW, rowH, layer.text, { fontSize: bodyFs, color: c.P.text, valign: "middle", pad: 4, role: "layertext" }));
     });
   };
-  const LEAF_TYPES = ["cell", "table", "ntable", "bars", "column", "line", "stacked", "kpi", "arrow", "gantt", "org", "pyramid"];
+  const LEAF_TYPES = ["cell", "table", "ntable", "bars", "column", "line", "stacked", "kpi", "arrow", "gantt", "org", "tree", "pyramid"];
   const FILLS = ["none", "light", "dark", "tint", "accent"];
-  const WRAP_TYPES = ["cell", "table", "ntable", "matrix", "bars", "column", "line", "stacked", "kpi", "arrow", "chevrons", "figure", "card", "bullets", "callout", "label", "icon", "gantt", "org"];
+  const WRAP_TYPES = ["cell", "table", "ntable", "matrix", "bars", "column", "line", "stacked", "kpi", "arrow", "chevrons", "figure", "card", "bullets", "callout", "label", "icon", "gantt", "org", "tree"];
 
   // Generation grammar: one visual, or 1–3 equal text panels. Legacy normalization
   // below is retained only for old saved specs; every /api/generate response uses this.
@@ -2037,7 +2083,7 @@
         return (n.rows || []).map((r) => [plain(r.head), ...(r.cells || []).map((c, j) => [plain((n.colHeaders || [])[j]), plain(cellText(c))].filter(Boolean).join(": "))].filter(Boolean).join(" / "));
       }
       if (n.type === "gantt") return (n.tasks || []).map((t) => `${plain(t.label)}: ${typeof t.start === "number" ? n.periods[t.start] : t.start}–${typeof t.end === "number" ? n.periods[t.end] : t.end}${t.note ? " / " + plain(t.note) : ""}`).concat((n.milestones || []).map((m) => `${plain(m.label)}: ${typeof m.at === "number" ? n.periods[m.at] : m.at}`));
-      if (n.type === "org") {
+      if (n.type === "org" || n.type === "tree") {
         const tree = (v, path) => v ? [[...path, plain(v.label)].join(" → ") + (v.sub ? ": " + plain(v.sub) : ""), ...(v.children || []).flatMap((k) => tree(k, [...path, plain(v.label)]))] : [];
         return tree(n.root, []);
       }
@@ -2578,7 +2624,7 @@
     if (!designs.length) return body;
     if (designs.length === 1 && (isDesignNode(body) || (isContainer(body) && body.rows && body.rows.length === 2 && isDesignNode(body.rows[0]) && body.rows[1].type === "cell" && !body.rows[1].head))) return body;
     // 主デザイン: 面積の大きい種類を優先(格子・ガント・体制図 > 図・箱フロー・番号カード > kpi)。同順位なら先に出る方
-    const rank = (n) => (isContainer(n) ? 2 : ["table", "ntable", "gantt", "org"].includes(n.type) ? 3 : n.type === "kpi" ? 0 : 2);
+    const rank = (n) => (isContainer(n) ? 2 : ["table", "ntable", "gantt", "org", "tree"].includes(n.type) ? 3 : n.type === "kpi" ? 0 : 2);
     let primary = designs[0];
     designs.forEach((d) => {
       if (rank(d) > rank(primary)) primary = d;
@@ -2846,8 +2892,11 @@
         return normGantt(n);
       case "org":
       case "orgchart":
-      case "tree":
         return normOrg(n);
+      case "tree":
+      case "issuetree":
+        // 論点ツリーは体制図と同じデータ構造だが、根を左に置いて右へ展開する(葉が増えても 16:9 に収まる)
+        return Object.assign(normOrg(n), { type: "tree" });
       case "bars":
       case "bar":
       case "chart":
