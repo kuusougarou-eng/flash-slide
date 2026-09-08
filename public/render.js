@@ -364,7 +364,7 @@
   function applyRect(shapes, p, ctx) {
     const G = PowerPoint.GeometricShapeType;
     const type =
-      { chevron: G.chevron, homePlate: G.homePlate, rightArrow: G.rightArrow, downArrow: G.downArrow, roundRect: G.roundRectangle, ellipse: G.ellipse, triangle: G.triangle }[p.shape] ||
+      { chevron: G.chevron, homePlate: G.homePlate, rightArrow: G.rightArrow, downArrow: G.downArrow, roundRect: G.roundRectangle, ellipse: G.ellipse, triangle: G.triangle, trapezoid: G.trapezoid }[p.shape] ||
       G.rectangle;
     const shape = shapes.addGeometricShape(type, { left: p.x, top: p.y, width: Math.max(1, p.w), height: Math.max(1, p.h) });
     shape.name = "FS_" + (p.text ? "text" : "rect");

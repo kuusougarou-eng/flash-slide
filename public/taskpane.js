@@ -416,6 +416,7 @@
   const SHAPES = {
     homePlate: "polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%)",
     chevron: "polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%, 18% 50%)",
+    trapezoid: "polygon(20% 0, 80% 0, 100% 100%, 0 100%)",
     triangle: "polygon(50% 0, 100% 100%, 0 100%)",
     rightArrow: "polygon(0 25%, 70% 25%, 70% 0, 100% 50%, 70% 100%, 70% 75%, 0 75%)",
     downArrow: "polygon(25% 0, 75% 0, 75% 70%, 100% 70%, 50% 100%, 0 70%, 25% 70%)",
@@ -511,6 +512,13 @@
       if (p.kind === "rect") inner.appendChild(primBox(p));
       else if (p.kind === "line") inner.appendChild(primLine(p));
       else if (p.kind === "table") for (const f of p.fallback || []) inner.appendChild(primBox(f));
+      else if (p.kind === "image") {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.src = "/api/icon?name=" + encodeURIComponent(p.name) + "&color=" + encodeURIComponent(p.color || "#252525") + "&size=256";
+        Object.assign(img.style, { position: "absolute", left: p.x + "px", top: p.y + "px", width: p.w + "px", height: p.h + "px" });
+        inner.appendChild(img);
+      }
     }
     wrap.appendChild(inner);
     const fit = () => {
