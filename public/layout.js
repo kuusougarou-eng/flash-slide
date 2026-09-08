@@ -1743,11 +1743,16 @@
       const dark = level === 0 || nd.highlight;
       const label = stripBold(nd.label || ""), sub = stripBold(nd.sub || "");
       c.prims.push(rect(x, cy - boxH / 2, colW, boxH, { fill: dark ? P.fillDark : P.fillLight }));
+      // 縮んだことを prims にも残す。密度判定(全体の縮小・2 枚分割)はこの印を見るので、
+      // ツリーだけ黙って 11pt まで縮むと「収まっている」と誤判定される
       if (sub) {
-        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH * 0.58, label, { fontSize: fitFont(label, colW - 10, boxH * 0.58, FONT.body, FONT.tableMin), bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "bottom", pad: 4, autofit: "none", role: "treelabel" }));
-        c.prims.push(textBox(x, cy - boxH / 2 + boxH * 0.55, colW, boxH * 0.45, sub, { fontSize: fitFont(sub, colW - 12, boxH * 0.45 - 4, FONT.body, FONT.caption), color: dark ? P.textOnDark : P.textMuted, align: "center", valign: "top", pad: 3, autofit: "none", role: "caption" }));
+        const lfs = fitFont(label, colW - 10, boxH * 0.58, FONT.body, FONT.tableMin);
+        const sfs = fitFont(sub, colW - 12, boxH * 0.45 - 4, FONT.body, FONT.caption);
+        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH * 0.58, label, { fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "bottom", pad: 4, autofit: "none", shrunk: lfs < FONT.min, role: "treelabel" }));
+        c.prims.push(textBox(x, cy - boxH / 2 + boxH * 0.55, colW, boxH * 0.45, sub, { fontSize: sfs, color: dark ? P.textOnDark : P.textMuted, align: "center", valign: "top", pad: 3, autofit: "none", role: "caption" }));
       } else {
-        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH, label, { fontSize: fitFont(label, colW - 10, boxH, FONT.body, FONT.tableMin), bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 4, autofit: "none", role: "treelabel" }));
+        const lfs = fitFont(label, colW - 10, boxH, FONT.body, FONT.tableMin);
+        c.prims.push(textBox(x, cy - boxH / 2, colW, boxH, label, { fontSize: lfs, bold: true, color: dark ? P.textOnDark : P.text, align: "center", valign: "middle", pad: 4, autofit: "none", shrunk: lfs < FONT.min, role: "treelabel" }));
       }
       const kids = nd.children || [];
       if (!kids.length) return;
