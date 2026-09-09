@@ -2549,12 +2549,13 @@
     if (groupH) {
       let col = 0;
       for (const g of node.groups) {
-        c.prims.push(textBox(plotX + col * pw, y, g.span * pw, groupH, g.text, { fontSize: fs, fill: P.fillLight, bold: true, align: "center", valign: "middle", pad: 3, role: "matrixcell" }));
+        c.prims.push(textBox(plotX + col * pw, y, g.span * pw, groupH, g.text, { fontSize: fs, fill: P.fillDark, color: P.textOnDark, bold: true, align: "center", valign: "middle", pad: 3, role: "matrixcell" }));
         col += g.span;
       }
       y += groupH;
     }
-    node.periods.forEach((p, i) => c.prims.push(textBox(plotX + pw * i, y, pw, hh, p, { fontSize: fs, bold: true, align: "center", valign: "middle", pad: 3, role: "matrixcell" })));
+    // 時系列の見出し(年度四半期・月など)は既定で濃い帯。時間軸は表の一部ではなく骨格そのものなので、常に立てる
+    node.periods.forEach((p, i) => c.prims.push(textBox(plotX + pw * i, y, pw, hh, p, { fontSize: fs, fill: P.fillDark, color: P.textOnDark, bold: true, align: "center", valign: "middle", pad: 3, role: "matrixcell" })));
     if (noteW) c.prims.push(textBox(plotX + plotW, y, noteW, hh, "補足", { fontSize: fs, bold: true, align: "left", valign: "middle", role: "matrixcell" }));
     y += hh;
     const bodyTop = y;
