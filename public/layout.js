@@ -2465,6 +2465,24 @@
           });
           if (changed) out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → column header"]);
         }
+        // 行の全セルが同じ「ラベル: 」で始まるなら、ラベルを行見出しに昇格させて本文から外す
+        // (列の場合と同じ理由。行頭に「基盤: ・…」と同じ前置きが並ぶと、ラベルが本文のノイズになる)
+        for (const rw of b0.rows) {
+          const cells = rw.cells || [];
+          if (cells.length < 2) continue;
+          const texts = cells.map(cellText);
+          if (texts.some((t) => !t.trim())) continue;
+          const pref = texts.map((t) => (t.match(/^\s*([^:：\n]{2,14})[:：]\s*/) || [])[1]).filter(Boolean);
+          if (pref.length !== texts.length || new Set(pref).size !== 1) continue;
+          if (rw.head && String(rw.head).trim() && stripBold(String(rw.head)).trim() !== pref[0]) continue;
+          rw.head = pref[0];
+          cells.forEach((cl, j) => {
+            const t = cellText(cl).replace(/^\s*[^:：\n]{2,14}[:：]\s*/, "").replace(/^[・•\-–]\s*/, "");
+            if (cl && typeof cl === "object") cl.text = t;
+            else cells[j] = t;
+          });
+          out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → row header"]);
+        }
         // 全行が空(— / 空文字)の列は落とす(空の観点列は情報ではない)
         const ncol = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
         const empty = [];
