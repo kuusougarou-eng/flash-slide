@@ -2257,7 +2257,9 @@
         const t = normTable(n, n.type === "ntable" ? "ntable" : "table");
         const nc = Math.max(t.colHeaders.length, ...t.rows.map((r) => r.cells.length), 0);
         if (!t.rows.length || !nc) throw new Error("マトリクスには行とセルが必要です。");
-        if (t.rows.length > 12 || nc > 6) throw new Error("表が大きすぎます。12 行・6 列以内でスライドを分けてください。");
+        // 大きい表でも例外にしない(1 回の推論で返ってきた内容を捨てない)。行数は描画側が版面で判定し、
+        // 収まらなければ splitToFit が行を前後に割る。列が 6 を超える分だけは落として警告する
+        if (nc > 6) t.rows.forEach((r) => (r.cells = r.cells.slice(0, 6)));
         if (t.type === "table" && !t.headShape && !t.axes && !t.colGroups && (t.rows.length >= 8 || t.rows.length * nc >= 36)) t.type = "ntable";
         if (t.type === "ntable" && t.colHeaders.length < nc) t.colHeaders = Array.from({ length: nc }, (_, j) => t.colHeaders[j] || "");
         if (t.type === "table") {
@@ -2380,6 +2382,52 @@
     return hit;
   }
 
+  /** 格子の整え(パネルの中の格子にも当てる): 行の共通ラベルは行見出しへ、揃った単位は列見出しへ */
+  function tidyTable(tb, out) {
+    if (!tb || !Array.isArray(tb.rows) || !tb.rows.length) return;
+      // 行の全セルが同じ「ラベル: 」で始まるなら、ラベルを行見出しに昇格させて本文から外す
+      // (列の場合と同じ理由。行頭に「基盤: ・…」と同じ前置きが並ぶと、ラベルが本文のノイズになる)
+      for (const rw of tb.rows) {
+        const cells = rw.cells || [];
+        if (cells.length < 2) continue;
+        const texts = cells.map(cellText);
+        if (texts.some((t) => !t.trim())) continue;
+        const pref = texts.map((t) => (t.match(/^\s*([^:：\n]{2,14})[:：]\s*/) || [])[1]).filter(Boolean);
+        if (pref.length !== texts.length || new Set(pref).size !== 1) continue;
+        if (rw.head && String(rw.head).trim() && stripBold(String(rw.head)).trim() !== pref[0]) continue;
+        rw.head = pref[0];
+        cells.forEach((cl, j) => {
+          const t = cellText(cl).replace(/^\s*[^:：\n]{2,14}[:：]\s*/, "").replace(/^[・•\-–]\s*/, "");
+          if (cl && typeof cl === "object") cl.text = t;
+          else cells[j] = t;
+        });
+        out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → row header"]);
+      }
+      // 列の全セルが「数値 + 同じ単位」なら、単位を列見出しに移してセルは数値だけにする
+      // (桁が縦に揃って読める。「3,200億円 / 8.2%」のように単位が散ると比較の目が止まる)
+      const ncolU = Math.max((tb.colHeaders || []).length, ...tb.rows.map((rw) => (rw.cells || []).length));
+      const UNIT = /^\s*([+\-▲△]?[\d,]+(?:\.\d+)?)\s*(兆円|億円|万円|千円|円|%|％|pt|件|回|名|人|社|日|か月|ヶ月|カ月|本|時間|倍|年|台|拠点|トン)\s*$/;
+      for (let j = 0; j < ncolU; j++) {
+        const texts = tb.rows.map((rw) => cellText((rw.cells || [])[j]));
+        if (texts.length < 2 || texts.some((x) => !x.trim())) continue;
+        const ms = texts.map((x) => UNIT.exec(stripBold(x)));
+        const hit = ms.filter(Boolean);
+        // 合計行・注記行が 1 つ混ざっていても諦めない(8 割が揃っていれば単位を移す。揃わないセルはそのまま)
+        if (hit.length < 2 || hit.length < texts.length * 0.7 || new Set(hit.map((m) => m[2])).size !== 1) continue; // 4 行のうち合計行 1 つは許す
+        const unit = hit[0][2].replace("％", "%");
+        tb.colHeaders = tb.colHeaders || [];
+        while (tb.colHeaders.length < ncolU) tb.colHeaders.push("");
+        if (!/[(（].*[)）]\s*$/.test(tb.colHeaders[j] || "")) tb.colHeaders[j] = (tb.colHeaders[j] || "").trim() + "(" + unit + ")";
+        tb.rows.forEach((rw, i) => {
+          if (!ms[i]) return;
+          const cl = (rw.cells || [])[j];
+          if (cl && typeof cl === "object") cl.text = ms[i][1];
+          else rw.cells[j] = ms[i][1];
+        });
+        out.compositionRepairs = (out.compositionRepairs || []).concat(["unit → column header"]);
+      }
+  }
+
   function refineComposition(out) {
     try {
       // Preserve the explicitly requested alternate layout and LLM text hierarchy.
@@ -2389,6 +2437,8 @@
       const targets = out && out.body ? (out.body.cols || [out.body]) : [];
       if (targets.filter((n) => !JSON.stringify(n).includes("**")).some(splitBlobs)) out.compositionRepairs = (out.compositionRepairs || []).concat(["labelled blob → list"]);
       const b0 = out && out.body;
+      // 横並びのパネルの中にある格子にも同じ整えを当てる(単位・行ラベルはどこにあっても同じ規律)
+      (b0 && b0.cols ? b0.cols : []).forEach((k) => { if (k && (k.type === "table" || k.type === "ntable")) tidyTable(k, out); });
       if (b0 && b0.type === "gantt" && Array.isArray(b0.periods) && Array.isArray(b0.tasks) && b0.tasks.length) {
         // 使われていない末尾の期間は落とす(LLM が 2 年分の月を並べても、最後の工程・節目までで切る)
         const used = Math.max.apply(null, b0.tasks.map((t) => Number(t.end) || 0).concat((b0.milestones || []).map((m) => Number(m.at) || 0)));
@@ -2455,44 +2505,7 @@
           });
           if (changed) out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → column header"]);
         }
-        // 行の全セルが同じ「ラベル: 」で始まるなら、ラベルを行見出しに昇格させて本文から外す
-        // (列の場合と同じ理由。行頭に「基盤: ・…」と同じ前置きが並ぶと、ラベルが本文のノイズになる)
-        for (const rw of b0.rows) {
-          const cells = rw.cells || [];
-          if (cells.length < 2) continue;
-          const texts = cells.map(cellText);
-          if (texts.some((t) => !t.trim())) continue;
-          const pref = texts.map((t) => (t.match(/^\s*([^:：\n]{2,14})[:：]\s*/) || [])[1]).filter(Boolean);
-          if (pref.length !== texts.length || new Set(pref).size !== 1) continue;
-          if (rw.head && String(rw.head).trim() && stripBold(String(rw.head)).trim() !== pref[0]) continue;
-          rw.head = pref[0];
-          cells.forEach((cl, j) => {
-            const t = cellText(cl).replace(/^\s*[^:：\n]{2,14}[:：]\s*/, "").replace(/^[・•\-–]\s*/, "");
-            if (cl && typeof cl === "object") cl.text = t;
-            else cells[j] = t;
-          });
-          out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → row header"]);
-        }
-        // 列の全セルが「数値 + 同じ単位」なら、単位を列見出しに移してセルは数値だけにする
-        // (桁が縦に揃って読める。「3,200億円 / 8.2%」のように単位が散ると比較の目が止まる)
-        const ncolU = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
-        const UNIT = /^\s*([+\-▲△]?[\d,]+(?:\.\d+)?)\s*(兆円|億円|万円|千円|円|%|％|pt|件|回|名|人|社|日|か月|ヶ月|カ月|本|時間|倍|年|台|拠点|トン)\s*$/;
-        for (let j = 0; j < ncolU; j++) {
-          const texts = b0.rows.map((rw) => cellText((rw.cells || [])[j]));
-          if (texts.length < 2 || texts.some((x) => !x.trim())) continue;
-          const ms = texts.map((x) => UNIT.exec(stripBold(x)));
-          if (ms.some((m) => !m) || new Set(ms.map((m) => m[2])).size !== 1) continue;
-          const unit = ms[0][2].replace("％", "%");
-          b0.colHeaders = b0.colHeaders || [];
-          while (b0.colHeaders.length < ncolU) b0.colHeaders.push("");
-          if (!/[(（].*[)）]\s*$/.test(b0.colHeaders[j] || "")) b0.colHeaders[j] = (b0.colHeaders[j] || "").trim() + "(" + unit + ")";
-          b0.rows.forEach((rw, i) => {
-            const cl = (rw.cells || [])[j];
-            if (cl && typeof cl === "object") cl.text = ms[i][1];
-            else rw.cells[j] = ms[i][1];
-          });
-          out.compositionRepairs = (out.compositionRepairs || []).concat(["unit → column header"]);
-        }
+        tidyTable(b0, out);
         // 全行が空(— / 空文字)の列は落とす(空の観点列は情報ではない)
         const ncol = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
         const empty = [];
@@ -2723,7 +2736,13 @@
   }
 
   function normalizeSpec(raw) {
-    if (raw && (raw.panelCount != null || raw.panels || raw.compositionVersion)) return refineComposition(normalizeGeneratedSpec(raw));
+    if (raw && (raw.panelCount != null || raw.panels || raw.compositionVersion)) {
+      // 生成応答(composition v1)。LLM の強調指定は normalizeGeneratedSpec が捨てるが、
+      // 「結論に名前が出ている行を立てる」規律はここで当てる(当てないと表がどこも主張しない)
+      const outC = refineComposition(normalizeGeneratedSpec(raw));
+      if (outC && outC.body) enforceBudget(outC.body, (outC.title || "") + (outC.lead || ""));
+      return outC;
+    }
     const s = raw && typeof raw === "object" ? raw : {};
     const out = {
       title: cleanTitle(stripBold(str(s.title || s.headline))).slice(0, 120),

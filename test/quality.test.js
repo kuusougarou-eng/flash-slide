@@ -30,6 +30,8 @@ const GATE = {
   shortInput: 200,
   fillMax: 0.99, // これを超えると詰まりすぎ
   coverage: 0.75, // 入力にあった数値・固有名詞のうち、spec に残っている割合
+  titleMax: 24, // title は 10〜18 字を指示。24 字を超えたら説明文になっている
+  leadLines: 2, // lead は版面で 2 行以内
   maxSlides: 4, // 既定は 1〜2 枚。読める大きさで入らないときだけエンジンが増やす(server.js の SPLIT_CAP と同じ)
 };
 
@@ -71,6 +73,29 @@ function gateSlide(name, spec) {
   check(name, bulletShapes.length <= panels, `箇条書きが ${bulletShapes.length} シェイプに分かれた(パネル ${panels})`);
   // ラベル列のように 1 行を 2 シェイプに割る描き方も禁止(同じ理由)
   check(name, !lay.prims.some((p) => p.role === "listlabel"), "1 行が 2 シェイプに割れている(listlabel)");
+
+  // G8 伝達力: タイトルは簡潔、リードは 2 行以内、主役が名指しされていれば強調が付いている
+  const title = String(spec.title || "").replace(/\s+/g, "");
+  check(name, title.length <= GATE.titleMax, `title が ${title.length} 字(${GATE.titleMax} 字以内)`);
+  const leadPrim = lay.prims.find((p) => p.role === "lead");
+  if (leadPrim) {
+    const lines = SlideLayout.estimateLines(leadPrim.text, leadPrim.w - 16, leadPrim.fontSize);
+    check(name, lines <= GATE.leadLines, `lead が ${lines} 行(${GATE.leadLines} 行以内)`);
+  }
+  const mention = ((spec.title || "") + (spec.lead || "")).replace(/\s+/g, "");
+  const tables = [];
+  (function walk(n) {
+    if (!n || typeof n !== "object") return;
+    if (n.type === "table" || n.type === "ntable") tables.push(n);
+    (n.rows || n.cols || []).forEach(walk);
+  })(spec.body);
+  for (const tb of tables) {
+    const named = (tb.rows || []).filter((rw) => rw.head && mention.includes(String(rw.head).replace(/\*\*/g, "").replace(/\s+/g, "")));
+    if (named.length) check(name, named.some((rw) => rw.headDark || rw.highlight), "結論に名前が出ている行が立っていない(強調ゼロ)");
+    const cells = (tb.rows || []).flatMap((rw) => rw.cells || []).map((c) => (typeof c === "string" ? c : (c && c.text) || ""));
+    const unitCells = cells.filter((c) => /^\s*[\d,.]+\s*(億円|万円|%|件|回|名|社|日|本)\s*$/.test(c));
+    check(name, unitCells.length < Math.max(3, cells.length * 0.5), `単位付きの数値がセルに散っている(${unitCells.length} セル)`);
+  }
 
   // G5 版面の使い方。ネイティブ表は版面を割り付けて埋めるのが正しい姿なので詰まりすぎの判定から外す
   const hasNativeTable = lay.prims.some((p) => p.kind === "table");
