@@ -968,12 +968,15 @@
     const arr = items || [];
     const nested = arr.some(Array.isArray);
     if (!nested) return { text: arr.map(itemToText).join("\n"), list: arr.length > 1, nested: false };
+    // 点は PowerPoint 本来の箇条書きに描かせ(疑似マーカーの「•」を文字で置かない)、子は行頭の空白で下げる。
+    // Office.js には段落を 1 段下げる手段が無い(paragraphFormat.indentLevel は実機で何も起きず、
+    // getSubstring で段落を選んでも同じ。タブ文字を入れると点だけ左端に置き去りになる。hint:"probeindent")。
     const lines = [];
     for (const it of arr) {
-      if (Array.isArray(it)) for (const sub of it) lines.push("　– " + itemToText(sub));
-      else lines.push("• " + itemToText(it));
+      if (Array.isArray(it)) for (const sub of it) lines.push("　　" + itemToText(sub));
+      else lines.push(itemToText(it));
     }
-    return { text: lines.join("\n"), list: false, nested: true };
+    return { text: lines.join("\n"), list: true, nested: true };
   }
   function cellBody(node) {
     if (Array.isArray(node.items) && node.items.length) return itemsBody(node.items);

@@ -260,10 +260,11 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const lay = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.flow), { width: 960, height: 540, palette: { accent: "none" } });
   assert.ok(!lay.prims.some((p) => (p.fill === "#FD5108") || (p.color === "#FD5108")), "mono mode: no accent color");
   checkPrims("mono", lay, 960, 540);
-  // ネスト箇条書き: 第 2 階層は記号付きの行になり、ネイティブ箇条書きは使わない
+  // ネスト箇条書き: 点は PowerPoint 本来の箇条書き、第 2 階層は行頭の空白で下げる(疑似マーカーを文字で置かない)
   const h = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.hierarchy), { width: 960, height: 540 });
-  const nested = h.prims.find((p) => p.kind === "rect" && /　– /.test(p.text));
-  assert.ok(nested && !nested.bullets, "nested items rendered with level markers, native bullets off");
+  const nested = h.prims.find((p) => p.kind === "rect" && /\n　　\S/.test(p.text || ""));
+  assert.ok(nested && nested.bullets, "nested items use native bullets and indent children with leading spaces");
+  assert.ok(!/[•–]/.test(nested.text), "no pseudo bullet characters in the text");
   // 兄弟列の行揃え: 4 列の見出し(1 段目)の高さ・下端が揃う
   const e = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.enumerate), { width: 960, height: 540 });
   const rules = e.prims.filter((p) => p.kind === "line" && p.weight === SlideLayout.STYLE.rule.thick && p.body);
