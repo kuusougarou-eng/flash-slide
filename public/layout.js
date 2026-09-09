@@ -50,7 +50,7 @@
     textOnDark: "#FFFFFF",
     line: "#7F7F7F",
     lineLight: "#C8C8C8",
-    fillLight: "#F2F2F2",
+    fillLight: "#EAEAEA", // 薄すぎると見出しの地として認識されない(#F2F2F2 は実機で沈んで見えた)
     fillMid: "#D9D9D9",
     fillDark: "#404040",
     accent: "#FD5108",
@@ -713,8 +713,15 @@
         kids
       );
     }
+    // 縦に積んだ箱フロー: 箱と箱の間に薄い下向きの三角を置いて、上から下へ進むことを示す
+    // (横並びのときに箱の間へ小さな三角を置くのと同じ扱い)
+    const stepStack = kids.length >= 2 && kids.every((k) => k.type === "cell" && k.shape === "step");
     let y = r.y;
     kids.forEach((k, i) => {
+      if (stepStack && i > 0) {
+        const d = Math.min(14, Math.max(8, gap - 4));
+        ctx.prims.push(rect(r.x + r.w / 2 - d / 2, y - gap / 2 - d / 2, d, d, { shape: "triangle", rotation: 180, fill: ctx.P.fillMid }));
+      }
       renderNode(k, { x: r.x, y, w: r.w, h: heights[i] }, ctx, "rows", false);
       y += heights[i] + gap;
     });
@@ -1305,8 +1312,10 @@
     }
     const needSum = needs.reduce((a, b) => a + b, 0) || 1;
     const extra = Math.max(0, availRows - needSum);
-    // 収まらないときは行高さを比例縮小して領域内に収める。余るときは行を間延びさせず(自然高さの +60% まで)、残りは下の余白にする
-    const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + (node._composition ? extra / Math.max(1, rows.length) : Math.min(extra / Math.max(1, rows.length), h * 0.6)));
+    // 収まらないときは行高さを比例縮小して領域内に収める。
+    // 余るときは余りを行に配りきって版面の下端まで使う(格子の下だけ大きく空くと、置き場所を間違えたように見える)。
+    // 1 行の中で文字が上下に泳がないよう、1 行だけのセルは行の中で縦中央、2 行以上のセルは上揃えにしている
+    const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + extra / Math.max(1, rows.length));
     const hasFills = rows.some((rw) => (rw.cells || []).some((cl) => cl && typeof cl === "object" && cl.fill));
     return { natural, colHeaders, rows, ncols, hasRowHead, chevron, colChevron, rowHeadW, colW, colWs, colX, cellPad, groupH, groupW, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
   }
@@ -1324,7 +1333,15 @@
     const matStart = c.prims.length;
     if (m.overflow) c.warnings.push("table overflow at " + m.fs + "pt");
     const x0 = r.x + m.gridX;
-    const headFs = Math.min(FONT.head, m.fs + 2);
+    // 列見出しは枠に対して大きすぎると折り返して 2 行になり、行見出しとの高さが合わなくなる。
+    // 一番狭い列で 1 行に収まる大きさまで落としてから使う(下限は本文サイズ)
+    const headFsFit = (base) => {
+      let f = base;
+      const fits = (v) => (m.colHeaders || []).every((h, j) => estimateLines(stripBold(h || ""), m.colWs[j] - m.cellPad * 2 - 2, v) <= 1);
+      while (f > m.fs && !fits(f)) f -= 1;
+      return f;
+    };
+    const headFs = headFsFit(Math.min(FONT.head, m.fs + 2));
     let y = r.y;
 
     // 列グループ見出し(2 階層の列見出し)
@@ -1364,11 +1381,11 @@
         if (m.colChevron) {
           // 横向きの矢羽(最後は五角形の先端): 図形はそのまま、文字は別のテキストシェイプで重ねる。
           // 幅・高さが足りないときは矢の形にせず長方形にする(行見出しの矢羽と同じ規律)
-          const ov = SPACE.chevronOverlap;
-          const sw = m.colWs[j] + (j < m.colHeaders.length - 1 ? ov : 0);
+          // 矢羽の先端は自分の列の中に収める。隣に重ねると先端が次の矢羽に食い込んで潰れる
+          const gap = 4;
           const shape = m.colWs[j] >= 100 && m.headH >= 28 ? "homePlate" : "rect";
-          c.prims.push(rect(cx, y, sw, m.headH - 2, { shape, fill: hl ? P.accent : P.fillDark }));
-          c.prims.push(textBox(cx, y, m.colWs[j], m.headH - 2, stripBold(h), { fontSize: headFs, bold: true, color: P.textOnDark, align: "center", valign: "middle", pad: 4, autofit: "none", role: "matrixcell" }));
+          c.prims.push(rect(cx, y, m.colWs[j] - gap, m.headH - 2, { shape, fill: hl ? P.accent : P.fillDark }));
+          c.prims.push(textBox(cx, y, m.colWs[j] - gap - m.headH * 0.4, m.headH - 2, stripBold(h), { fontSize: headFs, bold: true, color: P.textOnDark, align: "center", valign: "middle", pad: 4, autofit: "none", role: "matrixcell" }));
           return;
         }
         // 列見出しは中身の揃えに合わせる(数値列なら右、それ以外は左)。見出しだけ中央にしない
@@ -1495,12 +1512,15 @@
           const vPad = Math.min(cellPad, 8);
           const headH = textHeight(stripBold(headText), cw - cellPad * 2, m.fs) + vPad;
           const listH = textHeight(listText, cw - cellPad * 2 - BULLET_INDENT, m.fs) + vPad * 2;
-          const top = y + Math.max(0, (rh - headH - listH) / 2);
+          const top = y + Math.min(m.cellPad, 6); // 見出し付きのセルは上揃え(隣のセルと頭を揃える)
           c.prims.push(textBox(cx, top, cw, headH, headText, Object.assign({}, cellOpt, { valign: "top", bullets: false })));
           c.prims.push(textBox(cx, top + headH, cw, Math.max(listH, y + rh - top - headH), listText, Object.assign({}, cellOpt, { valign: "top", bullets: true })));
         } else {
           const text = na ? "—" : isList && marked ? lines.map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n") : raw;
-          c.prims.push(textBox(cx, y, cw, rh, text, Object.assign({}, cellOpt, { valign: "middle", bullets: isList })));
+          // 文字が 2 行以上あるセルは上揃え。縦中央にすると行ごとに文字の始まる高さがずれて、
+          // 横に読むときに視線が上下する(1 行だけのセルは中央の方が行の中で落ち着く)
+          const cellLines = estimateLines(stripBold(text), cw - cellPad * 2 - (isList ? BULLET_INDENT : 0), m.fs);
+          c.prims.push(textBox(cx, y, cw, rh, text, Object.assign({}, cellOpt, { valign: cellLines >= 2 ? "top" : "middle", bullets: isList })));
         }
         if (node.axes && j > 0) c.prims.push(line(cx, y + 2, cx, y + rh - 2, P.lineLight, RULE_THIN)); // 4 象限などは列の間にも薄い縦罫
       }
