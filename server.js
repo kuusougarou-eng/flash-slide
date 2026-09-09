@@ -22,6 +22,12 @@ const icons = require("./server/icons");
 const SlideLayout = require("./public/layout.js");
 
 const PORT = Number(process.env.PORT || 3000);
+// 推論は 1 回。密度・取りこぼし・章立ての「聞き直し」は 1 回あたり 3〜6 秒かかり(実測)、
+// 同じ入力でも発動するかが変わるため体感が安定しない。品質は 1 回の応答 + エンジン側の
+// 決定論的な処理で担保する。比較したいときだけ MULTI_PASS=1 で従来の聞き直しを有効にする。
+const MULTI_PASS = process.env.MULTI_PASS === "1";
+// 収まらないときにエンジンが増やしてよい上限。既定の 1〜2 枚を超えるのは、読める大きさで入らないときだけ
+const SPLIT_CAP = Math.max(2, Number(process.env.SPLIT_CAP) || 4);
 const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use((req, res, next) => {
@@ -139,7 +145,7 @@ app.post("/api/generate", async (req, res) => {
             // 「密」= 全体を 3pt 以上縮めないと入らない / 格子が溢れる / 上限で内容が落ちた
             const dropped = lay.warnings.some((w) => /content dropped|nested list overflow/.test(w)) || lay.prims.some((p) => p.shrunk && p.fontSize < 16);
             const dense = dropped || (!isGantt && ((lay.fonts.grown || 0) <= -3 || lay.warnings.some((w) => /table overflow/.test(w))));
-            if (dense) {
+            if (dense && MULTI_PASS) {
               const msgs2 = messages.concat([
                 { role: "assistant", content: JSON.stringify(raw) },
                 { role: "user", content: "上の構成は 1 枚に収まらない密度です(文字を縮めないと入らない)。内容を一切落とさずに slides を 2 枚に分けて JSON だけを返してください。1 枚目=結論と主要な根拠、2 枚目=詳細(格子・残りの項目)。同じ内容を 2 枚で繰り返さない。" },
@@ -160,7 +166,7 @@ app.post("/api/generate", async (req, res) => {
           // allowSections=false(章の生成)では prompt に元の入力全体がそのまま含まれたまま渡ってくるため、
           // この章だけを見て「入力全体」を分母にすると常に大半が欠落扱いになる(意味のある検知にならない)。
           // 章の情報保持は章立て自体(summary に事実を持たせる指示)で担保し、ここでは測らない
-          if (allowSections) {
+          if (allowSections && MULTI_PASS) {
             const tCov = Date.now();
             const src = prompt + "\n" + context;
             const want = coverage.atoms(src);
@@ -194,7 +200,7 @@ app.post("/api/generate", async (req, res) => {
           // 章立て(sections)へ切り替える(情報量が2枚という器を超えている。1〜2 枚に収める試みは既に上で尽くした)
           const tFin = Date.now();
           const finalCheck = shapeResponse(raw, normalizeResponseSpec, maxN);
-          if (allowSections && finalCheck.slides && finalCheck.slides.length) {
+          if (allowSections && MULTI_PASS && finalCheck.slides && finalCheck.slides.length) {
             const stillDense = finalCheck.slides.some((s) => {
               try {
                 const lay2 = SlideLayout.layout(s, { width: 960, height: 540, profile: { bodyFontSize: 14 } });
@@ -233,6 +239,19 @@ app.post("/api/generate", async (req, res) => {
       }
     }
     const shaped = shapeResponse(raw, normalizeResponseSpec, Math.max(1, Math.min(2, Number(maxSlides) || 2)));
+    // 収まらないときはエンジンが割る。LLM には聞き直さない(推論は 1 回)。
+    // 枚数を指定されているとき(1 枚固定)は割らない。既定は 1〜2 枚だが、内容が読める大きさで
+    // 入らないなら最大 4 枚まで増やす。文字を潰す・内容を落とすより枚数を増やす方がよい
+    if (shaped.slides && Number(maxSlides) !== 1) {
+      const cap = SPLIT_CAP;
+      const out = [];
+      for (const s of shaped.slides) for (const part of SlideLayout.splitToFit(s, cap - out.length)) out.push(part);
+      if (out.length > shaped.slides.length) {
+        meta.splitInto = out.length;
+        console.log(`[split] ${shaped.slides.length} → ${out.length} slides (deterministic, no re-ask)`);
+      }
+      shaped.slides = out.slice(0, cap);
+    }
     const ms = Date.now() - t0;
     if (process.env.DEBUG_SNAPSHOT === "1" && !useMock) {
       // 生応答と正規化後の spec を残す(崩れの再現・回帰テストの材料)
