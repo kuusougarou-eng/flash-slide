@@ -731,6 +731,17 @@
             dBox.name = "FS_probeindent";
             dBox.textFrame.textRange.font.size = 14;
             dBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+            // E: ソフト改行(垂直タブ = Shift+Enter 相当)。段落が変わらないなら子の行に点が付かず、
+            //    ぶら下げ位置(親の文字の左端)に揃うはず
+            const eBox = slide.shapes.addTextBox("E ソフト改行\n親項目 1子項目 1-1子項目 1-2\n親項目 2", { left: 325, top: 330, width: 290, height: 200 });
+            eBox.name = "FS_probeindent";
+            eBox.textFrame.textRange.font.size = 14;
+            eBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+            // F: ソフト改行 + 復帰(CR)。実装によってはこちらが段落内改行になる
+            const fBox = slide.shapes.addTextBox("F CR 改行\n親項目 1\r子項目 1-1\r子項目 1-2\n親項目 2", { left: 630, top: 330, width: 290, height: 200 });
+            fBox.name = "FS_probeindent";
+            fBox.textFrame.textRange.font.size = 14;
+            fBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
             await ctx.sync();
           });
           fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probeindent: "drawn" }) }).catch(() => {});

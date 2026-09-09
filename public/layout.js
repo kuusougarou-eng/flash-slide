@@ -123,6 +123,8 @@
     if (/[a-z]/.test(ch)) return 0.5;
     return 0.55;
   }
+  // 段落の区切りは "\n"、段落内のソフト改行(Shift+Enter 相当)は "\v"。行数の見積もりはどちらも 1 行として数える
+  const BREAK = /[\n\v]/;
   function stripBold(s) {
     return String(s || "").replace(/\*\*/g, "");
   }
@@ -135,7 +137,7 @@
     if (!text) return 0;
     width = width * 0.95; // 実フォントは概算より広い(PowerPoint の折り返しが 1 行早く起きる)ための安全率
     let lines = 0;
-    for (const p of stripBold(text).split("\n")) {
+    for (const p of stripBold(text).split(BREAK)) {
       let w = 0,
         l = 1;
       for (const ch of p) {
@@ -186,7 +188,7 @@
       // 2行目が点の位置まで戻って見える(実機確認済み)。どんな長さの文章でも floor まで
       // 縮めれば1行にはなるので、縮小は小幅(2pt まで)に限定する。それで足りない項目が
       // あれば諦めて高さ基準の fs のまま(折り返しを受け入れる。読みやすさを字下げより優先)
-      const items = stripBold(text).split("\n");
+      const items = stripBold(text).split(BREAK);
       const oneLine = (f) => items.every((it) => estimateLines(it, w, f) <= 1);
       const limit = Math.max(FONT.floor, fs - 2);
       let f = fs;
@@ -968,13 +970,16 @@
     const arr = items || [];
     const nested = arr.some(Array.isArray);
     if (!nested) return { text: arr.map(itemToText).join("\n"), list: arr.length > 1, nested: false };
-    // 点は PowerPoint 本来の箇条書きに描かせ(疑似マーカーの「•」を文字で置かない)、子は行頭の空白で下げる。
-    // Office.js には段落を 1 段下げる手段が無い(paragraphFormat.indentLevel は実機で何も起きず、
-    // getSubstring で段落を選んでも同じ。タブ文字を入れると点だけ左端に置き去りになる。hint:"probeindent")。
+    // 第 2 階層はソフト改行("\v" = Shift+Enter 相当)で親の段落の中に置く。段落が変わらないので
+    // 子には点が付かず、親の文字の左端(ぶら下げ位置)に自動で揃う。実機で確認済み(hint:"probeindent" の E)。
+    // 段落を 1 段下げる手段は無い(indentLevel は何も起きず、タブ文字は点だけ左端に置き去りになる)ので、
+    // 階層はこの形でしか作れない。点そのものは PowerPoint 本来の箇条書きに描かせる
     const lines = [];
     for (const it of arr) {
-      if (Array.isArray(it)) for (const sub of it) lines.push("　　" + itemToText(sub));
-      else lines.push(itemToText(it));
+      if (Array.isArray(it)) {
+        if (!lines.length) lines.push("");
+        for (const sub of it) lines[lines.length - 1] += "\v– " + itemToText(sub);
+      } else lines.push(itemToText(it));
     }
     return { text: lines.join("\n"), list: true, nested: true };
   }
