@@ -2272,7 +2272,10 @@
           // 行見出しがある 2 列の格子(論点 × 現状 など)は列見出しの帯を残す。畳むと「論点: …」が本文の頭に立ち、
           // しかも refineComposition が列見出しへ昇格させた直後に再正規化で戻される(往復して収束しない)
           const hasRowHeads = t.rows.some((r) => r.head && String(r.head).trim());
-          if (nc <= 2 && !t.colGroups && !t.axes && !(nc === 2 && hasRowHeads && t.rows.length >= 3)) { // 2 行以下の小さな表は従来どおり畳む
+          // 畳むのは「短い 1 行のセルだけの小さな表」に限る。箇条書きの塊(複数行)に列名を前置きすると
+          // 「論点: ・…」が本文の頭に立つ。分割で 2 行になった格子も同じ理由で畳まない
+          const multiLine = t.rows.some((r) => (r.cells || []).some((v) => /\n/.test(cellText(v))));
+          if (nc <= 2 && !t.colGroups && !t.axes && !(nc === 2 && hasRowHeads && (t.rows.length >= 3 || multiLine))) {
             t.rows.forEach((r) => { r.cells = r.cells.map((v, j) => (t.colHeaders[j] ? mergeLabel(v, t.colHeaders[j] + ": ") : v)); });
             t.colHeaders = [];
           }
