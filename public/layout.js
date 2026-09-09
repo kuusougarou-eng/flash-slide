@@ -1221,6 +1221,8 @@
     const ncols = Math.max(1, colHeaders.length || Math.max.apply(null, [1].concat(rows.map((rw) => (rw.cells || []).length))));
     const hasRowHead = !!(node.corner && node.corner.trim()) || rows.some((rw) => rw.head && String(rw.head).trim());
     const chevron = node.headShape === "chevron" && hasRowHead;
+    // 行見出しが無い n×m の工程表では、列見出しを矢羽にして左→右の進行を示す(行見出しの矢羽と同じ役目)
+    const colChevron = node.headShape === "chevron" && !hasRowHead && (node.colHeaders || []).length >= 2;
     const longestHead = hasRowHead ? Math.max.apply(null, [0].concat(rows.map((rw) => measure(stripBold(rw.head || ""), FONT.body)), [measure(stripBold(node.corner || ""), FONT.body)])) : 0;
     const numW = node.numbered ? measure("00", FONT.body) + SPACE.cellPad * 2 + 2 : 0;
     const rowHeadW = hasRowHead ? Math.max(w * 0.15, Math.min(w * 0.34, longestHead + SPACE.cellPad * 2 + 12 + numW)) : 0;
@@ -1306,7 +1308,7 @@
     // 収まらないときは行高さを比例縮小して領域内に収める。余るときは行を間延びさせず(自然高さの +60% まで)、残りは下の余白にする
     const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + (node._composition ? extra / Math.max(1, rows.length) : Math.min(extra / Math.max(1, rows.length), h * 0.6)));
     const hasFills = rows.some((rw) => (rw.cells || []).some((cl) => cl && typeof cl === "object" && cl.fill));
-    return { natural, colHeaders, rows, ncols, hasRowHead, chevron, rowHeadW, colW, colWs, colX, cellPad, groupH, groupW, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
+    return { natural, colHeaders, rows, ncols, hasRowHead, chevron, colChevron, rowHeadW, colW, colWs, colX, cellPad, groupH, groupW, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
   }
 
   LEAF.table = function (node, r, c) {
@@ -1349,7 +1351,7 @@
       // headDark(黒帯の反転見出し)は列をまたいで1本につながった帯そのものが意図した見た目なので、
       // 共有の背面シェイプのままにする。淡い地(_composition)は列ごとの塗りが要るだけなので、
       // 見出しシェイプの背面にもう1枚重ねず、各列見出しのテキストシェイプ自身に塗りを持たせる(隣とは小さな余白で分ける)
-      if (headDark) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillDark }));
+      if (headDark && !m.colChevron) c.prims.push(rect(bandX, y, bandW, m.headH - 2, { fill: P.fillDark }));
       if (m.hasRowHead && cornerText) c.prims.push(textBox(x0, y, m.rowHeadW, m.headH - 2, cornerText, { fontSize: headFs, bold: true, color: headDark ? P.textOnDark : P.text, align: "left", valign: headDark ? "middle" : "bottom", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
       const colGap = 1.5;
       // 塗り(headFill:"light"・強調列)と罫は同じ「境界を示す」役目が重複する。塗りがあれば罫は引かない、
@@ -1359,6 +1361,16 @@
         const hl = node.highlightCol === j;
         const cx = x0 + m.rowHeadW + m.colX(j);
         const cellFill = fillOf(j);
+        if (m.colChevron) {
+          // 横向きの矢羽(最後は五角形の先端): 図形はそのまま、文字は別のテキストシェイプで重ねる。
+          // 幅・高さが足りないときは矢の形にせず長方形にする(行見出しの矢羽と同じ規律)
+          const ov = SPACE.chevronOverlap;
+          const sw = m.colWs[j] + (j < m.colHeaders.length - 1 ? ov : 0);
+          const shape = m.colWs[j] >= 100 && m.headH >= 28 ? "homePlate" : "rect";
+          c.prims.push(rect(cx, y, sw, m.headH - 2, { shape, fill: hl ? P.accent : P.fillDark }));
+          c.prims.push(textBox(cx, y, m.colWs[j], m.headH - 2, stripBold(h), { fontSize: headFs, bold: true, color: P.textOnDark, align: "center", valign: "middle", pad: 4, autofit: "none", role: "matrixcell" }));
+          return;
+        }
         // 列見出しは中身の揃えに合わせる(数値列なら右、それ以外は左)。見出しだけ中央にしない
         const colAlign = colNumeric[j] ? "right" : "left";
         c.prims.push(

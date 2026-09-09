@@ -273,6 +273,13 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const wrapCase = SlideLayout.layout(SlideLayout.normalizeSpec({ panelCount: 1, title: "T", body: { type: "cell", items: ["**親 A**", [longChild, longChild]] } }), { width: 960, height: 540 });
   const widePrim = wrapCase.prims.find((p) => /\v/.test(p.text || ""));
   assert.ok(widePrim && /\v　– /.test(widePrim.text), "children that wrap get a marker so the boundary stays visible");
+  // 列方向の矢羽: 行見出しが無く headShape:"chevron" なら、列見出しが左→右の矢羽になる
+  const colChev = SlideLayout.layout(SlideLayout.normalizeSpec({ title: "移行は 4 段階で進める", body: { type: "table", headShape: "chevron", colHeaders: ["現状把握", "参照系移行", "更新系移行", "旧環境停止"], rows: [{ cells: ["棚卸し", "BI 38 本", "バッチ 64 本", "解約"] }, { cells: ["可視化", "並行稼働", "リハーサル", "手順更新"] }] } }), { width: 960, height: 540 });
+  const chevShapes = colChev.prims.filter((p) => p.shape === "homePlate");
+  assert.strictEqual(chevShapes.length, 4, "column headers become chevrons (" + chevShapes.length + ")");
+  assert.ok(chevShapes.every((p, i, a) => i === 0 || p.x > a[i - 1].x), "chevrons run left to right");
+  assert.ok(chevShapes.every((p) => Math.abs(p.y - chevShapes[0].y) < 0.5), "chevrons share one row");
+
   // 兄弟列の行揃え: 4 列の見出し(1 段目)の高さ・下端が揃う
   const e = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.enumerate), { width: 960, height: 540 });
   const rules = e.prims.filter((p) => p.kind === "line" && p.weight === SlideLayout.STYLE.rule.thick && p.body);
