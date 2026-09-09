@@ -5,20 +5,25 @@
  "capturedAt": "2026-09-09",
  "model": "azure.gpt-5.4-mini",
  "roundTrips": 1,
- "serverMs": 1578,
+ "serverMs": 1503,
  "response": {
   "slides": [
    {
-    "title": "移行対象テーブルの棚卸しは 72% まで進捗した",
-    "lead": "1,200 テーブルのうち 860 件を完了し、来週中に全件完了の見込み",
+    "title": "移行対象1,200テーブルの棚卸しは来週中に完了見込み",
+    "lead": "今週時点で860件（72%）を完了している",
     "footnote": "",
     "kicker": "",
     "panelCount": 1,
     "compositionVersion": 1,
     "body": {
-     "type": "kpi",
-     "value": "72%",
-     "label": "棚卸し完了率"
+     "type": "cell",
+     "head": "",
+     "items": [
+      "**対象**：移行対象 1,200 テーブル",
+      "**棚卸し完了**：860件（72%）",
+      "**見込み**：来週中に全件完了"
+     ],
+     "valign": "middle"
     },
     "layoutIntent": "auto"
    }

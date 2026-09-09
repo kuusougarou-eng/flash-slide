@@ -26,6 +26,8 @@ const GATE = {
   minBodyFont: 14, // 本文の最小サイズ。注記・格子セルは別枠(下の allow)
   minCellFont: 12, // 格子・表のセルはここまで
   fillMin: 0.3, // これ未満は疎すぎ(版面が余っている)
+  fillMinShort: 0.22, // 200 字未満の入力は素材そのものが少ないので、埋まらないのは版面の責任ではない
+  shortInput: 200,
   fillMax: 0.99, // これを超えると詰まりすぎ
   coverage: 0.75, // 入力にあった数値・固有名詞のうち、spec に残っている割合
   maxSlides: 4, // 既定は 1〜2 枚。読める大きさで入らないときだけエンジンが増やす(server.js の SPLIT_CAP と同じ)
@@ -70,7 +72,8 @@ function gateSlide(name, spec) {
 
   // G5 版面の使い方。ネイティブ表は版面を割り付けて埋めるのが正しい姿なので詰まりすぎの判定から外す
   const hasNativeTable = lay.prims.some((p) => p.kind === "table");
-  check(name, lay.fill >= GATE.fillMin, `版面が疎すぎる(fill=${lay.fill.toFixed(2)})`);
+  const fillMin = (spec._shortInput ? GATE.fillMinShort : GATE.fillMin);
+  check(name, lay.fill >= fillMin, `版面が疎すぎる(fill=${lay.fill.toFixed(2)} < ${fillMin})`);
   check(name, hasNativeTable || lay.fill <= GATE.fillMax, `版面が詰まりすぎ(fill=${lay.fill.toFixed(2)})`);
   return lay;
 }
@@ -101,7 +104,7 @@ for (const input of INPUTS) {
     const slides = [];
     for (const s of raw) for (const part of SlideLayout.splitToFit(SlideLayout.normalizeSpec(s), GATE.maxSlides - slides.length)) slides.push(part);
     check(name, slides.length >= 1 && slides.length <= GATE.maxSlides, `${slides.length} 枚(上限 ${GATE.maxSlides})`);
-    for (let i = 0; i < slides.length; i++) gateSlide(name + "#" + (i + 1), slides[i]);
+    for (let i = 0; i < slides.length; i++) gateSlide(name + "#" + (i + 1), Object.assign(slides[i], { _shortInput: input.prompt.length < GATE.shortInput }));
 
     // G7 入力の事実がどれだけ残っているか(1 回の推論で落とさないこと)
     const want = coverage.atoms(input.prompt).concat(coverage.terms(input.prompt));

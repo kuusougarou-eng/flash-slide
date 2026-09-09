@@ -3388,6 +3388,18 @@
       bodyB.rows = y;
       split = true;
     }
+    if (!split) {
+      // 主図が割れない(グラフ・ガント・体制図)のに大きな note がぶら下がっているとき。
+      // note が版面を食って図が潰れるので、note の中身を 2 枚目の本文に送る
+      const noteText = a.note && typeof a.note === "object" ? String(a.note.text || "") : String(a.note || "");
+      if (noteText.trim().length > 60) {
+        a.note = "";
+        b.note = "";
+        b.body = { type: "cell", text: noteText.trim() };
+        b.panelCount = 1;
+        split = true;
+      }
+    }
     if (!split) return null;
 
     b.title = String(a.title || "").trim();

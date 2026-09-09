@@ -75,7 +75,7 @@ app.get("/api/models", async (req, res) => {
 
 app.post("/api/generate", async (req, res) => {
   const t0 = Date.now();
-  const { prompt = "", context = "", hint = "", model = "", mock = false, maxSlides = 2, variant = 0, allowSections = true } = req.body || {};
+  const { prompt = "", context = "", hint = "", model = "", mock = false, maxSlides = 2, variant = 0, allowSections = true, split = true } = req.body || {};
   const c = llm.cfg();
   const useMock = mock === true || req.query.mock === "1" || !c.configured;
   const intent = ["auto", "matrix", "outline", "relational"][Math.max(0, Math.min(3, Math.trunc(Number(variant) || 0)))];
@@ -242,7 +242,7 @@ app.post("/api/generate", async (req, res) => {
     // 収まらないときはエンジンが割る。LLM には聞き直さない(推論は 1 回)。
     // 枚数を指定されているとき(1 枚固定)は割らない。既定は 1〜2 枚だが、内容が読める大きさで
     // 入らないなら最大 4 枚まで増やす。文字を潰す・内容を落とすより枚数を増やす方がよい
-    if (shaped.slides && Number(maxSlides) !== 1) {
+    if (shaped.slides && Number(maxSlides) !== 1 && split !== false) {
       const cap = SPLIT_CAP;
       const out = [];
       for (const s of shaped.slides) for (const part of SlideLayout.splitToFit(s, cap - out.length)) out.push(part);

@@ -57,7 +57,7 @@ function post(p, body) {
     const t0 = Date.now();
     let res;
     try {
-      res = await post("/api/generate", { prompt: c.prompt, hint: "", model, mock: false, maxSlides: 2 });
+      res = await post("/api/generate", { prompt: c.prompt, hint: "", model, mock: false, maxSlides: 2, split: false }); // 分割はゲート側で試すので、ここでは LLM の応答そのものを保存する
     } catch (e) {
       console.log("ERROR " + e.message);
       continue;
