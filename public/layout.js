@@ -2059,98 +2059,21 @@
     return head + "\n" + rest;
   }
   function renderNestedItems(node, r, c) {
-    const rows = node.items.flatMap((v) => Array.isArray(v) ? v.map((t) => ({ text: itemToText(t), level: 1 })) : [{ text: itemToText(v), level: 0 }]);
-    const labelledOutline =
-      node._labelledOutline != null ? node._labelledOutline : !rows.some((v) => v.level) && rows.every((v) => /^\*\*[^*]+\*\*\s*[:：]/.test(v.text));
-    const markerW = labelledOutline ? 0 : BULLET_INDENT;
-    // ラベル付きの列挙(**ラベル**: 値)は、ラベル列を左に揃えて値だけを折り返す。
-    // 1 つの文として流すと折り返した 2 行目がラベルの下に潜り、ラベルと値の境目が読めなくなる。
-    // 幅が足りない(値が 1 行 12 字未満になる)ときは列に割らず、従来どおり 1 つの文として流す。
-    const pairs = labelledOutline
-      ? rows.map((row) => {
-          const m = /^\*\*([^*]+)\*\*\s*[:：]?\s*([\s\S]*)$/.exec(row.text);
-          const label = m ? m[1].trim() : "";
-          const value = m ? m[2].trim() : "";
-          return label && value ? { label, value } : null;
-        })
-      : null;
-    const labelled = !!pairs && pairs.every(Boolean);
-    // **箇条書きを 1 行ずつ別のシェイプにしない。** 生成後にユーザーが箱を選び、Enter で項目を足し引きする
-    // のが実際の使い方で、行ごとに箱があるとその操作ができない(管理が破綻する)。
-    // Office.js の ParagraphFormat は horizontalAlignment と indentLevel しか持たず(実機で確認)、
-    // 段落間隔・行間・ぶら下げも、段落ごとの字下げも無い。1 シェイプでできることは限られるが、
-    // それは編集容易性より優先しない。兄弟パネルの行揃えもこのために捨てた(パネルごとに 1 シェイプ)。
+    // **箇条書きは 1 行ずつシェイプに分けない。** 生成後にユーザーが箱を選び Enter で項目を足し引きする
+    // のが実際の使い方で、行ごとに箱があるとその操作ができない。ラベル付きの列挙(**ラベル**: 値)も
+    // 以前は 1 行 2 シェイプでラベル列を揃えていたが、同じ理由でやめた。
+    // 折り返した 2 行目は点のぶら下がり位置(1 行目の文字の先頭)に揃うので、点さえ出ていればラベルと
+    // 値の境目は読める(実機で確認)。
+    // Office.js の ParagraphFormat は horizontalAlignment と indentLevel しか持たず、段落間隔・行間・
+    // 段落ごとの字下げは無い。1 シェイプでできることは限られるが、それは編集容易性より優先しない。
     // 余った高さは縦中央に置いて、下半分だけが空く見え方を避ける。
-    if (!labelled) {
-      const body = cellBody(node); // 入れ子は子をソフト改行で親の段落に入れて 1 シェイプに畳む
-      const tw = r.w - PAD * 2 - (body.list ? BULLET_INDENT : 0);
-      const fs = fitBody(c, body.text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, body.list);
-      const txt = nestedText(body, tw, fs, r.h - PAD * 2); // 記号と塊の空行は、実際の幅・文字サイズ・高さで決める
-      const need = textHeight(txt, tw, fs) + PAD * 2;
-      c.prims.push(
-        textBox(r.x, r.y, r.w, r.h, txt, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min })
-      );
-      if (need > r.h) c.warnings.push("nested list overflow");
-      return;
-    }
-    const LABEL_GAP = 10;
-    // 文字幅は近似なので、実フォントで 1 文字はみ出してラベルが折り返さないよう estimateLines と同じ安全率を戻す
-    const labelColW = (fs) => Math.min((r.w - PAD * 2) * 0.4, Math.max.apply(null, pairs.map((p) => measure(p.label, fs))) / 0.95 + LABEL_GAP);
-    const metrics = (fs) => {
-      const lw = labelled ? labelColW(fs) : 0;
-      const cols = labelled && r.w - PAD * 2 - lw >= fs * 12;
-      return rows.map((row, i) => {
-        const indent = row.level ? SPACE.levelIndent + 8 : 0;
-        const fontSize = row.level ? Math.max(FONT.floor, fs - 2) : fs;
-        const labelW = cols ? lw : 0;
-        const w = r.w - PAD * 2 - indent - markerW - labelW;
-        const text = cols ? pairs[i].value : breakAtLabel(row.text, w, fontSize);
-        // 分けたときも 1 シェイプの箇条書きと同じ字送りにする(項目間に余白を足さない)。
-        // 足せるのは分けたときだけなので、足すと 1 シェイプで描く箇条書きとの間で見た目が食い違う
-        return { ...row, text, label: cols ? pairs[i].label : null, labelW, indent, fontSize, w, h: textHeight(text, w, fontSize), gap: i === rows.length - 1 ? 0 : rows[i + 1].level === 0 ? 0 : 3 };
-      });
-    };
-    let fs = Math.min(FONT.large, FONT.body + 4), items = metrics(fs);
-    const sum = (xs) => xs.reduce((n, x) => n + x.h + x.gap, 0);
-    while (sum(items) > r.h - PAD * 2 && fs > FONT.floor) items = metrics(--fs);
-    if (fs < FONT.min) c.warnings.push("shrunk nested list to " + fs + "pt");
-    if (sum(items) > r.h) c.warnings.push("nested list overflow");
-    // 余りが大きいときは等高の行の格子にし、文字は行の中で縦中央、行の下に薄い罫を引く。
-    // 境界を作らずに間隔だけ広げると、見出し直下に穴が空いて版面のバランスが崩れる(実測で 56〜84pt の穴)。
-    // 行の高さは兄弟パネルと共有するので、段数が違っても罫の y が揃う。
-    const gridRows = Math.max(items.length, node._siblingRows || 0);
-    // 行の高さは版面を割り切った値ではなく「自然な字送りを行数単位に丸めた値」を上限にする。
-    // 割り切った値をそのまま使うと、疎なパネルで行が版面いっぱいに散り、1 シェイプで描く
-    // 箇条書きより明らかに間延びして見える(同じスライドの中で間隔が食い違う)。
-    // 行数単位に丸めるので、兄弟パネルの行数が同じなら左右の行は揃ったままになる
-    const lineH = fs * FONT.lineHeight;
-    const naturalRowH = Math.max.apply(null, items.map((row) => row.h).concat([lineH]));
-    const gridRowH = Math.min((r.h - PAD * 2) / Math.max(1, gridRows), Math.ceil(naturalRowH / lineH) * lineH);
-    // 兄弟パネルがあるときは段数が違っても必ず格子にする(片方だけ格子になると行が揃わず、かえって崩れて見える)。
-    // 単独のパネルは格子にしない(そもそもここへは来ない)。余白のために行を広げると、
-    // 1 シェイプで描く箇条書きとの間で間隔が食い違う。疎な版面は文字サイズと縦中央で埋める。
-    const useGrid = node._siblingRows > 0;
-    // 行の高さは自然な字送りそのものなので、収まり判定は等号まで許す(-4 のままだと必ず外れて
-    // 兄弟パネルが揃わない流し込みに落ちる)
-    if (items.length >= 2 && !rows.some((v) => v.level) && useGrid && items.every((row) => row.h <= gridRowH + 0.5)) {
-      let gy = r.y + Math.max(PAD, (r.h - gridRowH * gridRows) / 2); // 縮めた分は上下に均等に返す(兄弟パネルで同じ値になる)
-      items.forEach((row) => {
-        const gx = r.x + PAD + row.indent;
-        // 点は PowerPoint 本来の箇条書き(paragraphFormat.bulletFormat)に描かせる。
-        // 「・」を別の図形として置くと、行の高さや折り返しのたびに点だけ位置がずれる。
-        if (row.label) c.prims.push(textBox(gx, gy, row.labelW - 2, gridRowH, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, valign: "middle", role: "listlabel", shrunk: fs < FONT.min }));
-        c.prims.push(textBox(gx + row.labelW, gy, row.w + markerW, gridRowH, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, valign: "middle", bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
-        gy += gridRowH;
-      });
-      return;
-    }
-    let y = r.y + Math.max(PAD, (r.h - sum(items)) / 2);
-    for (const row of items) {
-      const x = r.x + PAD + row.indent;
-      if (row.label) c.prims.push(textBox(x, y, row.labelW - 2, row.h, row.label, { fontSize: row.fontSize, bold: true, color: c.P.text, pad: 0, role: "listlabel", shrunk: fs < FONT.min }));
-      c.prims.push(textBox(x + row.labelW, y, row.w + markerW, row.h, row.text, { fontSize: row.fontSize, color: c.P.text, pad: 0, bullets: markerW > 0, role: "listitem", shrunk: fs < FONT.min }));
-      y += row.h + row.gap;
-    }
+    const body = cellBody(node); // 入れ子は子をソフト改行で親の段落に入れて 1 シェイプに畳む
+    const tw = r.w - PAD * 2 - (body.list ? BULLET_INDENT : 0);
+    const fs = fitBody(c, body.text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, body.list);
+    const txt = nestedText(body, tw, fs, r.h - PAD * 2); // 記号と塊の空行は、実際の幅・文字サイズ・高さで決める
+    const need = textHeight(txt, tw, fs) + PAD * 2;
+    c.prims.push(textBox(r.x, r.y, r.w, r.h, txt, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min }));
+    if (need > r.h) c.warnings.push("nested list overflow");
   }
   function unnumberHead(value) {
     let text = String(value || "").trim(), prior;
@@ -2663,15 +2586,13 @@
       const textKids = kids.filter((k) => !k._figurePanel);
       const rowsOf = (k) => (k.items || []).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 1), 0);
       const siblingRows = textKids.length >= 2 ? Math.max(...textKids.map(rowsOf)) : 0;
-      // 「**ラベル**：」で始まる列挙は点を打たない。片方だけ点が付くと左右で体裁が変わるので、全パネルで揃える
-      const labelled = textKids.every((k) => (k.items || []).every((v) => !Array.isArray(v) && /^\*\*[^*]+\*\*\s*[:：]/.test(itemToText(v))));
       kids.forEach((k, i) => {
         const w = ws[i], x = xs[i];
         c.prims.push(textBox(x, r.y, w, hh - 2, k.head, { fontSize: FONT.head, bold: true, color: c.P.text, align: "center", valign: "middle", role: "panelhead" }));
         c.prims.push(line(x, r.y + hh, x + w, r.y + hh, c.P.text, RULE_THICK));
         const br = { x, y: r.y + hh + GAP / 2, w, h: r.h - hh - GAP / 2 };
         if (k._figurePanel) (LEAF[k.type] || LEAF.cell)(Object.assign({}, k, { _composition: true, highlight: false }), br, c);
-        else LEAF.cell({ type: "cell", items: k.items, valign: "middle", _inPanel: true, _gid: 1, _siblingRows: siblingRows, _labelledOutline: labelled }, br, c);
+        else LEAF.cell({ type: "cell", items: k.items, valign: "middle", _inPanel: true, _gid: 1, _siblingRows: siblingRows }, br, c);
       });
       return;
     }

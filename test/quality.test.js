@@ -69,6 +69,8 @@ function gateSlide(name, spec) {
   const bulletShapes = lay.prims.filter((p) => p.bullets && p.text && p.role !== "matrixcell" && p.role !== "tablecell");
   const panels = spec.panelCount || 1;
   check(name, bulletShapes.length <= panels, `箇条書きが ${bulletShapes.length} シェイプに分かれた(パネル ${panels})`);
+  // ラベル列のように 1 行を 2 シェイプに割る描き方も禁止(同じ理由)
+  check(name, !lay.prims.some((p) => p.role === "listlabel"), "1 行が 2 シェイプに割れている(listlabel)");
 
   // G5 版面の使い方。ネイティブ表は版面を割り付けて埋めるのが正しい姿なので詰まりすぎの判定から外す
   const hasNativeTable = lay.prims.some((p) => p.kind === "table");
