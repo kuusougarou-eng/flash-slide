@@ -1440,8 +1440,10 @@
           else c.prims.push(rect(x0, y + 1, m.rowHeadW - 4, rh - 2, { fill: rowHl ? P.accent : P.fillDark })); // 小さいときは矢の形にせず長方形
           c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: node._composition ? P.text : P.textOnDark, align: "center", valign: "middle", pad: 4, autofit: "none", role: "matrixcell" }));
         } else {
-          if (node.rowHeadFill !== "none" && headText) c.prims.push(rect(x0, y + 2, m.rowHeadW - 4, rh - 4, { fill: P.fillLight })); // 行名は薄い箱
-          c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: P.text, align: "left", valign: "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
+          // 行名の箱は既定で薄い地。比較の主役が行の軸のときだけ rowHeadFill:"dark" で濃い地 + 白文字にする
+          const rowHeadDark = node.rowHeadFill === "dark";
+          if (node.rowHeadFill !== "none" && headText) c.prims.push(rect(x0, y + 2, m.rowHeadW - 4, rh - 4, { fill: rowHeadDark ? (rowHl ? P.accent : P.fillDark) : P.fillLight }));
+          c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: rowHeadDark ? P.textOnDark : P.text, align: "left", valign: "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
         }
       }
       for (let j = 0; j < m.ncols; j++) {
@@ -2847,7 +2849,20 @@
           if (n.fill === "dark" && (!(n.head && String(n.head).trim()) || darks++ >= 1)) n.fill = "light"; // 反転できる見出しが無い / 2 つ目 → 薄い塗り
           break;
         case "table":
-        case "ntable":
+        case "ntable": {
+          // 濃い見出し帯は「比較の主役になっている軸」1 つだけ。結論(title / lead)にその軸の名前が
+          // 出ていないなら濃くしない。行と列の両方を濃くすると、どちらが主役か分からなくなる
+          const rowNames = (n.rows || []).map((rw) => rw.head).filter(Boolean);
+          const colNames = (n.colHeaders || []).filter(Boolean);
+          const rowIsSubject = rowNames.some(mentioned);
+          const colIsSubject = colNames.some(mentioned);
+          if (n.rowHeadFill === "dark" && !(rowIsSubject && darks < 1)) n.rowHeadFill = undefined;
+          if (n.rowHeadFill === "dark") {
+            darks++;
+            if (n.headFill !== "none") n.headFill = "light"; // 軸は 1 つだけ濃くする
+          } else if (n.headFill === "dark" && !(colIsSubject && darks < 1)) {
+            n.headFill = undefined; // 既定(濃い帯)に戻す。既定が濃いので明示指定を落とすだけ
+          } else if (n.headFill === "dark") darks++;
           if (typeof n.highlightCol === "number" && !mentioned((n.colHeaders || [])[n.highlightCol])) n.highlightCol = undefined;
           if (typeof n.highlightCol === "number" && !takeHl()) n.highlightCol = undefined;
           (n.rows || []).forEach((rw) => {
@@ -2859,6 +2874,7 @@
             });
           });
           break;
+        }
         case "bars":
         case "column":
           (n.items || []).forEach((it) => {
@@ -3221,7 +3237,7 @@
     if (type === "table") {
       if (n.headFill === "dark" || n.headStyle === "dark") out.headFill = "dark";
       else if (n.headFill === "none" || n.headFill === "light") out.headFill = n.headFill;
-      if (n.rowHeadFill === "none") out.rowHeadFill = "none";
+      if (n.rowHeadFill === "none" || n.rowHeadFill === "dark") out.rowHeadFill = n.rowHeadFill;
       if (n.numbered === true) out.numbered = true;
       if (n.headShape === "chevron" || n.headShape === "chevrons") out.headShape = "chevron";
       if (Array.isArray(n.colGroups) && n.colGroups.length) out.colGroups = n.colGroups.map((g) => ({ text: str(g.text || g.head), span: Math.max(1, Number(g.span) || 1) }));

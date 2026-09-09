@@ -273,6 +273,13 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const wrapCase = SlideLayout.layout(SlideLayout.normalizeSpec({ panelCount: 1, title: "T", body: { type: "cell", items: ["**親 A**", [longChild, longChild]] } }), { width: 960, height: 540 });
   const widePrim = wrapCase.prims.find((p) => /\v/.test(p.text || ""));
   assert.ok(widePrim && /\v　– /.test(widePrim.text), "children that wrap get a marker so the boundary stays visible");
+  // 濃い見出し帯は「結論に名前が出ている軸」1 つだけ。行を濃くしたら列は薄くする
+  const darkRow = SlideLayout.normalizeSpec({ title: "可視化基盤が最も参入余地が大きい", body: { type: "table", rowHeadFill: "dark", colHeaders: ["市場規模", "成長率"], rows: [{ head: "倉庫自動化", cells: ["3,200億円", "8.2%"] }, { head: "可視化基盤", cells: ["1,800億円", "17.1%"] }] } });
+  assert.strictEqual(darkRow.body.rowHeadFill, "dark", "the axis named in the message may be dark");
+  assert.strictEqual(darkRow.body.headFill, "light", "the other axis falls back to a light band");
+  const darkNone = SlideLayout.normalizeSpec({ title: "3 つの観点で比較する", body: { type: "table", rowHeadFill: "dark", colHeaders: ["A", "B"], rows: [{ head: "甲", cells: ["1", "2"] }, { head: "乙", cells: ["3", "4"] }] } });
+  assert.strictEqual(darkNone.body.rowHeadFill, undefined, "an axis not named in the message is not darkened");
+
   // 列方向の矢羽: 行見出しが無く headShape:"chevron" なら、列見出しが左→右の矢羽になる
   const colChev = SlideLayout.layout(SlideLayout.normalizeSpec({ title: "移行は 4 段階で進める", body: { type: "table", headShape: "chevron", colHeaders: ["現状把握", "参照系移行", "更新系移行", "旧環境停止"], rows: [{ cells: ["棚卸し", "BI 38 本", "バッチ 64 本", "解約"] }, { cells: ["可視化", "並行稼働", "リハーサル", "手順更新"] }] } }), { width: 960, height: 540 });
   const chevShapes = colChev.prims.filter((p) => p.shape === "homePlate");
