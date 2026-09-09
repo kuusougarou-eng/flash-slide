@@ -321,9 +321,12 @@
       if (prof.lead && lead) {
         header.leadText = lead;
         const l = prof.lead;
-        header.leadFontSize = l.reuse ? fitLeadSlot(lead, l.w, l.h, l.fontSize || FONT.lead) : fitFont(lead, l.w - PAD * 2, l.h - PAD * 2, l.fontSize || FONT.lead, Math.min(l.fontSize || FONT.lead, 12));
+        // リードがタイトルと同じ大きさに近いと階層が消える。テンプレの値がタイトルの 62% を超えるなら抑える
+        const leadCap = prof.title && prof.title.fontSize ? Math.max(14, Math.round(prof.title.fontSize * 0.62)) : Infinity;
+        const leadBase = Math.min(l.fontSize || FONT.lead, leadCap);
+        header.leadFontSize = l.reuse ? fitLeadSlot(lead, l.w, l.h, leadBase) : fitFont(lead, l.w - PAD * 2, l.h - PAD * 2, leadBase, Math.min(leadBase, 12));
         if (!l.reuse) {
-          const fs = fitFont(lead, l.w - PAD * 2, l.h - PAD * 2, l.fontSize || FONT.lead, Math.min(l.fontSize || FONT.lead, 14));
+          const fs = fitFont(lead, l.w - PAD * 2, l.h - PAD * 2, leadBase, Math.min(leadBase, 14));
           prims.push(textBox(l.x, l.y, l.w, l.h, lead, { fontSize: fs, color: l.color || P.text, align: l.align || "left", valign: l.valign || "top", fontName: l.fontName || bodyFont, autofit: "none", role: "lead" }));
         }
         y = Math.max(y, l.y + l.h);
@@ -1337,7 +1340,9 @@
     // 収まらないときは行高さを比例縮小して領域内に収める。
     // 余るときは余りを行に配りきって版面の下端まで使う(格子の下だけ大きく空くと、置き場所を間違えたように見える)。
     // 1 行の中で文字が上下に泳がないよう、1 行だけのセルは行の中で縦中央、2 行以上のセルは上揃えにしている
-    const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + extra / Math.max(1, rows.length));
+    // 余りは配りきるが、1 行あたり自然高さの 2.5 倍まで。3 行しかない表を版面いっぱいに散らすと、
+    // 見出しと 1 行目だけ密集して下の行が浮く(実機で確認)。上限で余った分は下に残す
+    const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + Math.min(extra / Math.max(1, rows.length), h * 1.5));
     const hasFills = rows.some((rw) => (rw.cells || []).some((cl) => cl && typeof cl === "object" && cl.fill));
     return { natural, colHeaders, rows, ncols, hasRowHead, chevron, colChevron, rowHeadW, colW, colWs, colX, cellPad, groupH, groupW, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
   }
@@ -1485,7 +1490,7 @@
           c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: node._composition ? P.text : P.textOnDark, align: "center", valign: "middle", pad: 4, autofit: "none", role: "matrixcell" }));
         } else {
           // 行名の箱は既定で薄い地。比較の主役が行の軸のときだけ rowHeadFill:"dark" で濃い地 + 白文字にする
-          const rowHeadDark = node.rowHeadFill === "dark";
+          const rowHeadDark = !!rw.headDark; // 主役の行だけ濃い地 + 白文字
           if (node.rowHeadFill !== "none" && headText) c.prims.push(rect(x0, y + 2, m.rowHeadW - 4, rh - 4, { fill: rowHeadDark ? (rowHl ? P.accent : P.fillDark) : P.fillLight }));
           c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: rowHeadDark ? P.textOnDark : P.text, align: "left", valign: rowTopOf(rw) ? "top" : "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
         }
@@ -2468,6 +2473,26 @@
           });
           out.compositionRepairs = (out.compositionRepairs || []).concat(["cell prefix → row header"]);
         }
+        // 列の全セルが「数値 + 同じ単位」なら、単位を列見出しに移してセルは数値だけにする
+        // (桁が縦に揃って読める。「3,200億円 / 8.2%」のように単位が散ると比較の目が止まる)
+        const ncolU = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
+        const UNIT = /^\s*([+\-▲△]?[\d,]+(?:\.\d+)?)\s*(兆円|億円|万円|千円|円|%|％|pt|件|回|名|人|社|日|か月|ヶ月|カ月|本|時間|倍|年|台|拠点|トン)\s*$/;
+        for (let j = 0; j < ncolU; j++) {
+          const texts = b0.rows.map((rw) => cellText((rw.cells || [])[j]));
+          if (texts.length < 2 || texts.some((x) => !x.trim())) continue;
+          const ms = texts.map((x) => UNIT.exec(stripBold(x)));
+          if (ms.some((m) => !m) || new Set(ms.map((m) => m[2])).size !== 1) continue;
+          const unit = ms[0][2].replace("％", "%");
+          b0.colHeaders = b0.colHeaders || [];
+          while (b0.colHeaders.length < ncolU) b0.colHeaders.push("");
+          if (!/[(（].*[)）]\s*$/.test(b0.colHeaders[j] || "")) b0.colHeaders[j] = (b0.colHeaders[j] || "").trim() + "(" + unit + ")";
+          b0.rows.forEach((rw, i) => {
+            const cl = (rw.cells || [])[j];
+            if (cl && typeof cl === "object") cl.text = ms[i][1];
+            else rw.cells[j] = ms[i][1];
+          });
+          out.compositionRepairs = (out.compositionRepairs || []).concat(["unit → column header"]);
+        }
         // 全行が空(— / 空文字)の列は落とす(空の観点列は情報ではない)
         const ncol = Math.max((b0.colHeaders || []).length, ...b0.rows.map((rw) => (rw.cells || []).length));
         const empty = [];
@@ -2904,11 +2929,17 @@
           const colNames = (n.colHeaders || []).filter(Boolean);
           const rowIsSubject = rowNames.some(mentioned);
           const colIsSubject = colNames.some(mentioned);
-          if (n.rowHeadFill === "dark" && !(rowIsSubject && darks < 1)) n.rowHeadFill = undefined;
-          if (n.rowHeadFill === "dark") {
+          // 行を濃くするのは「結論に名前が出ている行」だけ。全行を濃くするとコントラストの予算を
+          // 使い切って、どこも立っていない表になる(実機で確認)。LLM が rowHeadFill:"dark" と言わなくても、
+          // 結論に行の名前が出ていて他に強調が無ければ、その行を自動で立てる(表は主張しなければならない)
+          const subjectRows = (n.rows || []).filter((rw) => rw.head && mentioned(rw.head));
+          if ((n.rowHeadFill === "dark" || subjectRows.length) && subjectRows.length && darks < 1) {
+            subjectRows.slice(0, 1).forEach((rw) => (rw.headDark = true));
             darks++;
             if (n.headFill !== "none") n.headFill = "light"; // 軸は 1 つだけ濃くする
-          } else if (n.headFill === "dark" && !(colIsSubject && darks < 1)) {
+          }
+          n.rowHeadFill = n.rowHeadFill === "none" ? "none" : undefined; // 全行を濃くする指定は受け付けない
+          if (n.headFill === "dark" && !(colIsSubject && darks < 1)) {
             n.headFill = undefined; // 既定(濃い帯)に戻す。既定が濃いので明示指定を落とすだけ
           } else if (n.headFill === "dark") darks++;
           if (typeof n.highlightCol === "number" && !mentioned((n.colHeaders || [])[n.highlightCol])) n.highlightCol = undefined;
