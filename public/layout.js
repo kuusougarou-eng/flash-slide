@@ -1342,7 +1342,7 @@
     // 1 行の中で文字が上下に泳がないよう、1 行だけのセルは行の中で縦中央、2 行以上のセルは上揃えにしている
     // 余りは配りきるが、1 行あたり自然高さの 2.5 倍まで。3 行しかない表を版面いっぱいに散らすと、
     // 見出しと 1 行目だけ密集して下の行が浮く(実機で確認)。上限で余った分は下に残す
-    const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + Math.min(extra / Math.max(1, rows.length), h * 1.5));
+    const rowHeights = needSum > availRows ? needs.map((h) => (h * Math.max(40, availRows)) / needSum) : needs.map((h) => h + Math.min(extra / Math.max(1, rows.length), h * 1.5, 110));
     const hasFills = rows.some((rw) => (rw.cells || []).some((cl) => cl && typeof cl === "object" && cl.fill));
     return { natural, colHeaders, rows, ncols, hasRowHead, chevron, colChevron, rowHeadW, colW, colWs, colX, cellPad, groupH, groupW, headH, fs, rowHeights, overflow: needSum > availRows, gridX, gridW, axisW, axisH, hasFills };
   }
@@ -1355,7 +1355,9 @@
     const colNumeric = [];
     for (let j = 0; j < m.ncols; j++) {
       const vals = m.rows.map((rw) => cellText((rw.cells || [])[j])).filter((t) => t.trim() && !isNA(t));
-      colNumeric.push(vals.length > 0 && vals.every((t) => isNumeric(t)));
+      // 合計行や注記行が 1 つ混ざっても数値列として扱う(7 割が数値なら右揃え)。全セル一致を要求すると
+      // 「2024年 8,400億円 → …」のような要約行 1 つで列全体が左揃えに落ちる
+      colNumeric.push(vals.length > 0 && vals.filter((t) => isNumeric(t)).length >= Math.max(1, vals.length * 0.7));
     }
     const matStart = c.prims.length;
     if (m.overflow) c.warnings.push("table overflow at " + m.fs + "pt");
@@ -1471,10 +1473,10 @@
       const rowHl = !!rw.highlight;
       if (rowHl) c.prims.push(rect(x0 + m.rowHeadW, y, m.gridW - m.rowHeadW, rh, { fill: P.accentTint }));
       if (m.hasRowHead) {
-        const headText = (node._composition && m.chevron && node.numbered ? String(i + 1).padStart(2, "0") + "  " : "") + stripBold(rw.head || "");
+        const headText = (node._composition && m.chevron && node.numbered ? String((node.numberFrom || 1) + i).padStart(2, "0") + "  " : "") + stripBold(rw.head || "");
         if (node.numbered && !m.chevron) {
           // 行番号「01」を行見出しの左に添える(参考デッキの判断軸の表)
-          const numT = String(i + 1).padStart(2, "0");
+          const numT = String((node.numberFrom || 1) + i).padStart(2, "0");
           const nw = measure(numT, m.fs) + m.cellPad * 2 + 2;
           c.prims.push(textBox(x0, y, nw, rh, numT, { fontSize: m.fs, bold: true, color: rowHl ? P.accent : P.fillDark, align: "left", valign: "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
           c.prims.push(textBox(x0 + nw, y, m.rowHeadW - nw, rh, headText, { fontSize: m.fs, bold: true, color: P.text, align: "left", valign: "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
@@ -2489,7 +2491,7 @@
         for (let j = 0; j < ncol2; j++) {
           const texts = b0.rows.map((rw) => cellText((rw.cells || [])[j]));
           if (texts.length < 2 || texts.some((t) => !t.trim())) continue;
-          const pref = texts.map((t) => (t.match(/^\s*([^:：]{2,14})[:：]\s*/) || [])[1]).filter(Boolean);
+          const pref = texts.map((t) => (stripBold(t).match(/^\s*([^:：\n]{2,14})[:：]\s*/) || [])[1]).filter(Boolean);
           if (pref.length !== texts.length || new Set(pref).size !== 1) continue;
           const existing = (b0.colHeaders || [])[j];
           if (existing && existing.trim() && existing.trim() !== pref[0]) continue;
@@ -2499,7 +2501,8 @@
           b0.colHeaders[j] = pref[0];
           b0.rows.forEach((rw) => {
             const cl = (rw.cells || [])[j];
-            const t = cellText(cl).replace(/^\s*[^:：]{2,14}[:：]\s*/, "");
+            // 太字の「**論点:**」も、ラベル直後の「・」も外す(残ると本文の頭にノイズが立つ)
+            const t = cellText(cl).replace(/^\s*(?:\*\*)?[^:：\n*]{2,14}[:：](?:\*\*)?\s*[・•\-–]?\s*/, "");
             if (cl && typeof cl === "object") cl.text = t;
             else rw.cells[j] = t;
           });
@@ -3414,6 +3417,16 @@
     const enough = (xs) => Array.isArray(xs) && xs.length >= 2;
 
     // パネル(あるいは格子)の中身を前後に割る。項目の列挙でも、格子の行でも同じように扱う
+    // 格子の行は 4 行以上あるときだけ割る。3 行を 2+1 に割ると、1 行だけの格子が 1 枚を占めて
+    // 版面が間延びする(実機で確認)。3 行以下は割らずに縮小に任せる。番号は続きから振る
+    const splitRows = (k, kb) => {
+      if (!Array.isArray(k.rows) || k.rows.length < 3) return false; // 2 行は割らない。3 行は 12pt でも入らないときだけ 2+1 に割る(1 行の側は伸びを 110pt で抑える)
+      const [x, y] = halve(k.rows);
+      k.rows = x;
+      kb.rows = y;
+      kb.numberFrom = (k.numberFrom || 1) + x.length;
+      return true;
+    };
     const halveKid = (k, kb) => {
       if (enough(k.items)) {
         const [x, y] = halve(k.items);
@@ -3421,13 +3434,7 @@
         kb.items = y;
         return true;
       }
-      if (enough(k.rows)) {
-        const [x, y] = halve(k.rows);
-        k.rows = x;
-        kb.rows = y;
-        return true;
-      }
-      return false;
+      return splitRows(k, kb);
     };
     const hasContent = (k) => (k.items && k.items.length) || (k.rows && k.rows.length);
 
@@ -3447,11 +3454,8 @@
       body.items = x;
       bodyB.items = y;
       split = true;
-    } else if (enough(body.rows)) {
-      const [x, y] = halve(body.rows);
-      body.rows = x;
-      bodyB.rows = y;
-      split = true;
+    } else if (Array.isArray(body.rows) && body.rows.length >= 3) {
+      split = splitRows(body, bodyB);
     }
     if (!split) {
       // 主図が割れない(グラフ・ガント・体制図)のに大きな note がぶら下がっているとき。
