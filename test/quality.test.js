@@ -98,7 +98,7 @@ function gateSlide(name, spec) {
   }
 
   // G5 版面の使い方。ネイティブ表は版面を割り付けて埋めるのが正しい姿なので詰まりすぎの判定から外す
-  const hasNativeTable = lay.prims.some((p) => p.kind === "table");
+  const hasNativeTable = lay.prims.some((p) => p.kind === "table" || p.role === "matrixcell"); // 図形の格子も版面を埋めるのが正しい
   const fillMin = (spec._shortInput ? GATE.fillMinShort : GATE.fillMin);
   check(name, lay.fill >= fillMin, `版面が疎すぎる(fill=${lay.fill.toFixed(2)} < ${fillMin})`);
   check(name, hasNativeTable || lay.fill <= GATE.fillMax, `版面が詰まりすぎ(fill=${lay.fill.toFixed(2)})`);

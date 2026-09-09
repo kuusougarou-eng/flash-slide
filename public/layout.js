@@ -2269,7 +2269,10 @@
           // 見出しをセル文字列へ畳み込むときも .items(箇条書き版)は残す(text だけに見出しを足す)
           const mergeLabel = (v, label) =>
             v && typeof v === "object" && Array.isArray(v.items) && v.items.length ? Object.assign({}, v, { text: label + cellText(v) }) : label + cellText(v);
-          if (nc <= 2 && !t.colGroups && !t.axes) {
+          // 行見出しがある 2 列の格子(論点 × 現状 など)は列見出しの帯を残す。畳むと「論点: …」が本文の頭に立ち、
+          // しかも refineComposition が列見出しへ昇格させた直後に再正規化で戻される(往復して収束しない)
+          const hasRowHeads = t.rows.some((r) => r.head && String(r.head).trim());
+          if (nc <= 2 && !t.colGroups && !t.axes && !(nc === 2 && hasRowHeads && t.rows.length >= 3)) { // 2 行以下の小さな表は従来どおり畳む
             t.rows.forEach((r) => { r.cells = r.cells.map((v, j) => (t.colHeaders[j] ? mergeLabel(v, t.colHeaders[j] + ": ") : v)); });
             t.colHeaders = [];
           }
@@ -3339,6 +3342,7 @@
       if (n.headFill === "dark" || n.headStyle === "dark") out.headFill = "dark";
       else if (n.headFill === "none" || n.headFill === "light") out.headFill = n.headFill;
       if (n.rowHeadFill === "none" || n.rowHeadFill === "dark") out.rowHeadFill = n.rowHeadFill;
+      if (Number.isFinite(Number(n.numberFrom)) && Number(n.numberFrom) > 1) out.numberFrom = Number(n.numberFrom); // 分割した 2 枚目は番号を続きから
       if (n.numbered === true) out.numbered = true;
       if (n.headShape === "chevron" || n.headShape === "chevrons") out.headShape = "chevron";
       if (Array.isArray(n.colGroups) && n.colGroups.length) out.colGroups = n.colGroups.map((g) => ({ text: str(g.text || g.head), span: Math.max(1, Number(g.span) || 1) }));
@@ -3385,9 +3389,10 @@
       const floor = cellRoles.includes(p.role) ? Math.max(12, o.minFont - 2) : o.minFont;
       if (p.fontSize < floor) return { ok: false, reason: "font " + p.fontSize + "pt", lay };
     }
-    // ネイティブ表は版面を割り付けて埋めるのが正しい姿なので、詰まりすぎの判定から外す
-    const hasNativeTable = lay.prims.some((p) => p.kind === "table");
-    if (!hasNativeTable && lay.fill > o.maxFill) return { ok: false, reason: "fill " + lay.fill.toFixed(2), lay };
+    // 表(ネイティブでも図形の格子でも)は版面を割り付けて埋めるのが正しい姿なので、詰まりすぎの判定から外す。
+    // 行見出しの箱や矢羽が「見える面積」に数えられ、3 行の格子でも fill が 1.00 になって割れすぎていた
+    const hasTable = lay.prims.some((p) => p.kind === "table" || p.role === "matrixcell");
+    if (!hasTable && lay.fill > o.maxFill) return { ok: false, reason: "fill " + lay.fill.toFixed(2), lay };
     return { ok: true, lay };
   }
 
