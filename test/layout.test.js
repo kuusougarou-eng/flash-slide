@@ -285,6 +285,22 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const darkNone = SlideLayout.normalizeSpec({ title: "3 つの観点で比較する", body: { type: "table", rowHeadFill: "dark", colHeaders: ["A", "B"], rows: [{ head: "甲", cells: ["1", "2"] }, { head: "乙", cells: ["3", "4"] }] } });
   assert.ok(darkNone.body.rows.every((r) => !r.headDark), "an axis not named in the message is not darkened");
 
+  // 割った 2 枚目は番号が続く(01 に戻らない)。タスクペインが再正規化しても numberFrom が残る
+  const sixSteps = SlideLayout.normalizeSpec({ panelCount: 1, compositionVersion: 1, title: "6 工程で移行する", body: { type: "table", headShape: "chevron", numbered: true, colHeaders: [], rows: ["現状把握", "設計", "参照系移行", "更新系移行", "並行稼働", "旧環境停止"].map((h, i) => ({ head: h, cells: ["工程 " + (i + 1) + " の作業内容。判定条件と成果物を併記する。"] })) } });
+  const halves = SlideLayout.splitSpec(sixSteps);
+  assert.strictEqual(halves[1].body.numberFrom, 4, "second half numbers from 4");
+  assert.strictEqual(SlideLayout.normalizeSpec(JSON.parse(JSON.stringify(halves[1]))).body.numberFrom, 4, "numberFrom survives re-normalization");
+  const secondHalf = SlideLayout.layout(SlideLayout.normalizeSpec(JSON.parse(JSON.stringify(halves[1]))), { width: 960, height: 540 });
+  assert.ok(secondHalf.prims.some((p) => /^04/.test(p.text || "")), "rendered numbering continues at 04");
+  // 箇条書きの塊を持つ 2 列の格子は、再正規化しても列見出しが本文へ戻らない(「論点: ・…」にならない)
+  const twoCol = SlideLayout.normalizeSpec({ panelCount: 1, compositionVersion: 1, title: "在庫を立て直す", body: { type: "table", colHeaders: ["論点", "現状"], rows: [{ head: "在庫", cells: ["欠品 年4,200万\n・廃棄 年1,800万", "S&OP を週次で実施"] }, { head: "営業", cells: ["受注 +18%\n・新規 32社", "値引き決裁を基準化"] }] } });
+  const twoColAgain = SlideLayout.normalizeSpec(JSON.parse(JSON.stringify(twoCol)));
+  assert.deepStrictEqual(twoColAgain.body.colHeaders, ["論点", "現状"], "column headers survive re-normalization");
+  assert.ok(!/^論点[:：]/.test(String(twoColAgain.body.rows[0].cells[0].text || twoColAgain.body.rows[0].cells[0])), "label is not folded back into the cell");
+  // 図形で組む格子は版面を埋めるのが正しい姿。fill だけを理由に「収まらない」と判定しない
+  const grid = SlideLayout.normalizeSpec({ panelCount: 1, compositionVersion: 1, title: "t", body: { type: "table", colHeaders: ["A", "B"], rows: [{ head: "甲", cells: ["1", "2"] }, { head: "乙", cells: ["3", "4"] }, { head: "丙", cells: ["5", "6"] }] } });
+  assert.ok(SlideLayout.fitsReadably(grid).ok, "a small shape grid is not rejected for filling the body");
+
   // 列方向の矢羽: 行見出しが無く headShape:"chevron" なら、列見出しが左→右の矢羽になる
   const colChev = SlideLayout.layout(SlideLayout.normalizeSpec({ title: "移行は 4 段階で進める", body: { type: "table", headShape: "chevron", colHeaders: ["現状把握", "参照系移行", "更新系移行", "旧環境停止"], rows: [{ cells: ["棚卸し", "BI 38 本", "バッチ 64 本", "解約"] }, { cells: ["可視化", "並行稼働", "リハーサル", "手順更新"] }] } }), { width: 960, height: 540 });
   const chevShapes = colChev.prims.filter((p) => p.shape === "homePlate");

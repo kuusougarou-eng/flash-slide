@@ -30,6 +30,10 @@ Office.js(PowerPoint JavaScript API 1.4〜1.10)と LiteLLM(OpenAI 互換)だけ�
 - 密度: 2 枚に収めても縮めないと入らないときの章立て(`sections`)への自動エスカレーション、
   章がさらに章立てを返してスライドが消えていたバグの修正、章生成時の取りこぼしチェックの誤検知を修正。
 
+### 品質基準
+合格基準・採点の観点・コーパス・実行方法は [docs/quality-standard.md](docs/quality-standard.md)。
+`npm test` の `quality.test.js` が機械判定し、最終的な見え方は実機で目視する。
+
 ### 次にやること
 - 品質ゲート(`test/quality.test.js`)のコーパスを増やす(時系列・体制・数表の入力を追加する)
 - 疎なスライドの版面(51 字級の入力は 26pt でも fill 0.29。素材が少ないときの見せ方は未決)
