@@ -262,9 +262,17 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   checkPrims("mono", lay, 960, 540);
   // ネスト箇条書き: 点は PowerPoint 本来の箇条書き、第 2 階層はソフト改行で親の段落に入れる(子には点が付かない)
   const h = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.hierarchy), { width: 960, height: 540 });
-  const nested = h.prims.find((p) => p.kind === "rect" && /\v– /.test(p.text || ""));
+  const nested = h.prims.find((p) => p.kind === "rect" && /\v/.test(p.text || ""));
   assert.ok(nested && nested.bullets, "nested items use native bullets and put children on soft line breaks");
   assert.ok(!/•/.test(nested.text), "no pseudo top-level bullet character in the text");
+  // 子の記号「–」は、子が折り返すときだけ付ける(幅と文字サイズが決まってから決める)
+  const short = SlideLayout.layout(SlideLayout.normalizeSpec({ panelCount: 1, title: "T", body: { type: "cell", items: ["**親 A**", ["子 1", "子 2"]] } }), { width: 960, height: 540 });
+  const shortPrim = short.prims.find((p) => /\v/.test(p.text || ""));
+  assert.ok(shortPrim && !/–/.test(shortPrim.text), "children that fit on one line need no marker");
+  const longChild = "主要部材の単価が前年比 +14% で、仕入先 182 社に分散した結果、上位 10 社で購買額の 38% にとどまっている";
+  const wrapCase = SlideLayout.layout(SlideLayout.normalizeSpec({ panelCount: 1, title: "T", body: { type: "cell", items: ["**親 A**", [longChild, longChild]] } }), { width: 960, height: 540 });
+  const widePrim = wrapCase.prims.find((p) => /\v/.test(p.text || ""));
+  assert.ok(widePrim && /\v– /.test(widePrim.text), "children that wrap get a marker so the boundary stays visible");
   // 兄弟列の行揃え: 4 列の見出し(1 段目)の高さ・下端が揃う
   const e = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.enumerate), { width: 960, height: 540 });
   const rules = e.prims.filter((p) => p.kind === "line" && p.weight === SlideLayout.STYLE.rule.thick && p.body);

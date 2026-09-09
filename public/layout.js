@@ -966,13 +966,34 @@
     // 段落を 1 段下げる手段は無い(indentLevel は何も起きず、タブ文字は点だけ左端に置き去りになる)ので、
     // 階層はこの形でしか作れない。点そのものは PowerPoint 本来の箇条書きに描かせる
     const lines = [];
+    const marked = [];
+    const childLines = [];
     for (const it of arr) {
       if (Array.isArray(it)) {
-        if (!lines.length) lines.push("");
-        for (const sub of it) lines[lines.length - 1] += "\v– " + itemToText(sub);
-      } else lines.push(itemToText(it));
+        if (!lines.length) {
+          lines.push("");
+          marked.push("");
+        }
+        for (const sub of it) {
+          const t = itemToText(sub);
+          childLines.push(t);
+          lines[lines.length - 1] += "\v" + t;
+          marked[marked.length - 1] += "\v– " + t;
+        }
+      } else {
+        const t = itemToText(it);
+        lines.push(t);
+        marked.push(t);
+      }
     }
-    return { text: lines.join("\n"), list: true, nested: true };
+    return { text: lines.join("\n"), marked: marked.join("\n"), childLines, list: true, nested: true };
+  }
+  /** 入れ子の子行に「–」を付けるかを、幅と文字サイズが決まってから決める。
+   *  子が 1 行に収まるなら記号なし(字下げだけで階層が読める。記号を足すと騒がしい)。
+   *  折り返す子があるなら記号を付ける(付けないと子と子の切れ目が消えて 1 つの文に見える) */
+  function nestedText(body, w, fs) {
+    if (!body || !body.nested || !body.marked) return body ? body.text : "";
+    return (body.childLines || []).some((l) => estimateLines(l, w, fs) > 1) ? body.marked : body.text;
   }
   function cellBody(node) {
     if (Array.isArray(node.items) && node.items.length) return itemsBody(node.items);
@@ -1163,10 +1184,12 @@
     const fs = fitBody(c, b.text, w - padX * 2 - (b.list ? BULLET_INDENT : 0), bh - PAD * 2, pref, b.list ? 4 : 0, head ? FONT.large : FONT.large, b.list);
     const align = node.align || "left"; // 本文は常に左。右寄せは格子の数値列だけに限る(全体の平仄)
     // 下線パネルの本文は、枠に対して文字が少ないときは縦中央に置く(上に張り付いて下が空く密度の偏りをなくす)
-    const need = textHeight(b.text, w - padX * 2 - (b.list ? BULLET_INDENT : 0), fs, b.list ? 4 : 0) + PAD * 2;
+    const bw = w - padX * 2 - (b.list ? BULLET_INDENT : 0);
+    const bodyText = nestedText(b, bw, fs); // 子が折り返すときだけ「–」を付ける
+    const need = textHeight(bodyText, bw, fs, b.list ? 4 : 0) + PAD * 2;
     const roomyPanel = !fill && !node._inPanel && bh > need * 1.4;
     const valign = roomyPanel ? "middle" : head ? "top" : fill ? "middle" : node.valign || "top";
-    c.prims.push(textBox(x, y, w, bh, b.text, { fontSize: fs, bold: !!node.bold, color: textColor, bullets: b.list, align, valign, pad: padX, shrunk: fs < FONT.min, gid: node._gid }));
+    c.prims.push(textBox(x, y, w, bh, bodyText, { fontSize: fs, bold: !!node.bold, color: textColor, bullets: b.list, align, valign, pad: padX, shrunk: fs < FONT.min, gid: node._gid }));
   };
 
   // ---------- table: セルを組み合わせた格子(ネイティブ表ではない) ----------
@@ -2038,12 +2061,13 @@
     // それは編集容易性より優先しない。兄弟パネルの行揃えもこのために捨てた(パネルごとに 1 シェイプ)。
     // 余った高さは縦中央に置いて、下半分だけが空く見え方を避ける。
     if (!labelled) {
-      const body = cellBody(node); // 入れ子は itemsBody の記法(親「•」/ 子「　–」)で 1 シェイプに畳む
+      const body = cellBody(node); // 入れ子は子をソフト改行で親の段落に入れて 1 シェイプに畳む
       const tw = r.w - PAD * 2 - (body.list ? BULLET_INDENT : 0);
       const fs = fitBody(c, body.text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, body.list);
-      const need = textHeight(body.text, tw, fs) + PAD * 2;
+      const txt = nestedText(body, tw, fs); // 子が折り返すときだけ「–」を付ける
+      const need = textHeight(txt, tw, fs) + PAD * 2;
       c.prims.push(
-        textBox(r.x, r.y, r.w, r.h, body.text, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min })
+        textBox(r.x, r.y, r.w, r.h, txt, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min })
       );
       if (need > r.h) c.warnings.push("nested list overflow");
       return;
