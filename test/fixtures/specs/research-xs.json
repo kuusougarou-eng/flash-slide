@@ -1,0 +1,27 @@
+{
+ "name": "research-xs",
+ "genre": "調査報告書",
+ "prompt": "国内スマート物流市場の調査。2024年の市場規模は8,400億円、2029年に1.42兆円(CAGR 11.1%)。",
+ "capturedAt": "2026-09-09",
+ "model": "azure.gpt-5.4-mini",
+ "roundTrips": 1,
+ "serverMs": 1597,
+ "response": {
+  "slides": [
+   {
+    "title": "国内スマート物流市場は2029年に1.42兆円へ拡大する",
+    "lead": "2024年の市場規模は8,400億円で、2029年まで CAGR 11.1% で成長する",
+    "footnote": "",
+    "kicker": "",
+    "panelCount": 1,
+    "compositionVersion": 1,
+    "body": {
+     "type": "kpi",
+     "value": "1.42兆円",
+     "label": "2029年の市場規模"
+    },
+    "layoutIntent": "auto"
+   }
+  ]
+ }
+}

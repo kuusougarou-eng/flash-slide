@@ -1,0 +1,27 @@
+{
+ "name": "weekly-xs",
+ "genre": "定例報告",
+ "prompt": "今週の進捗。移行対象1,200テーブルのうち棚卸し完了は860件(72%)。来週中に全件完了の見込み。",
+ "capturedAt": "2026-09-09",
+ "model": "azure.gpt-5.4-mini",
+ "roundTrips": 1,
+ "serverMs": 1578,
+ "response": {
+  "slides": [
+   {
+    "title": "移行対象テーブルの棚卸しは 72% まで進捗した",
+    "lead": "1,200 テーブルのうち 860 件を完了し、来週中に全件完了の見込み",
+    "footnote": "",
+    "kicker": "",
+    "panelCount": 1,
+    "compositionVersion": 1,
+    "body": {
+     "type": "kpi",
+     "value": "72%",
+     "label": "棚卸し完了率"
+    },
+    "layoutIntent": "auto"
+   }
+  ]
+ }
+}

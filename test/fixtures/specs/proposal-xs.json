@@ -1,0 +1,47 @@
+{
+ "name": "proposal-xs",
+ "genre": "提案書",
+ "prompt": "業務システム刷新のご提案。現行は稼働14年、月間障害3.2件、手作業の連携が27本。刷新に2.4億円、3年で回収。",
+ "capturedAt": "2026-09-09",
+ "model": "azure.gpt-5.4-mini",
+ "roundTrips": 1,
+ "serverMs": 2974,
+ "response": {
+  "slides": [
+   {
+    "title": "老朽化した業務システムは刷新投資で早期回収を狙う",
+    "lead": "現行は稼働14年で月間障害3.2件、手作業の連携27本が残る",
+    "footnote": "",
+    "kicker": "",
+    "panelCount": 2,
+    "compositionVersion": 1,
+    "body": {
+     "cols": [
+      {
+       "type": "cell",
+       "head": "現行の課題",
+       "items": [
+        "**稼働年数**：14年",
+        "**障害頻度**：月間 3.2件",
+        "**手作業連携**：27本",
+        "**示唆**：保守負荷と業務リスクが高い状態"
+       ],
+       "valign": "middle"
+      },
+      {
+       "type": "cell",
+       "head": "刷新の効果",
+       "items": [
+        "**投資額**：2.4億円",
+        "**回収期間**：3年",
+        "**狙い**：障害削減と連携自動化による安定運用"
+       ],
+       "valign": "middle"
+      }
+     ]
+    },
+    "layoutIntent": "auto"
+   }
+  ]
+ }
+}
