@@ -89,16 +89,24 @@ app.post("/api/generate", async (req, res) => {
     } else {
       if (!prompt.trim() && !context.trim()) return res.status(400).json({ error: "prompt が空です" });
       const messages = buildMessages({ prompt, context, hint, maxSlides, variant, allowSections });
+      // LLM の往復回数を数える。密度・取りこぼし・章立ての再依頼で 1 回の生成が 2〜4 往復になることがあり、
+      // 体感の遅さはほぼここで決まる(レイアウト計算は 1 枚 0.5ms 前後で効かない)
+      meta = { roundTrips: 0 };
+      const ask = async (msgs) => {
+        meta.roundTrips++;
+        return llm.chat({ messages: msgs, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+      };
+      meta.roundTrips++;
       const r = await llm.chat({ messages, model: model || undefined, maxTokens: 3000, temperature: 0.2, jsonMode: true });
       raw = extractJson(r.content);
-      meta = { model: r.model, usage: r.usage, mock: false, endpoint: r.url };
+      meta = { model: r.model, usage: r.usage, mock: false, endpoint: r.url, roundTrips: meta.roundTrips };
       // 章立ての 1 章分では sections を受け付けない。章がさらに章立てを返すと、その章のスライドが 0 枚のまま黙って落ちる
       if (!allowSections && raw && Array.isArray(raw.sections) && raw.sections.length && !(Array.isArray(raw.slides) && raw.slides.length)) {
         const msgsNo = messages.concat([
           { role: "assistant", content: JSON.stringify(raw) },
           { role: "user", content: "sections は返さないでください。この依頼は章立ての 1 章分です。上で章に分けた内容を一切落とさず、slides(1〜2 枚)の JSON だけを返してください。" },
         ]);
-        const rNo = await llm.chat({ messages: msgsNo, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+        const rNo = await ask(msgsNo);
         const rawNo = extractJson(rNo.content);
         if (rawNo && ((Array.isArray(rawNo.slides) && rawNo.slides.length) || rawNo.title)) {
           raw = rawNo;
@@ -124,7 +132,7 @@ app.post("/api/generate", async (req, res) => {
                 { role: "assistant", content: JSON.stringify(raw) },
                 { role: "user", content: "上の構成は 1 枚に収まらない密度です(文字を縮めないと入らない)。内容を一切落とさずに slides を 2 枚に分けて JSON だけを返してください。1 枚目=結論と主要な根拠、2 枚目=詳細(格子・残りの項目)。同じ内容を 2 枚で繰り返さない。" },
               ]);
-              const r2 = await llm.chat({ messages: msgs2, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+              const r2 = await ask(msgs2);
               const raw2 = extractJson(r2.content);
               const second = shapeResponse(raw2, normalizeResponseSpec, maxN);
               if (second.slides && second.slides.length === 2) {
@@ -153,7 +161,7 @@ app.post("/api/generate", async (req, res) => {
                 { role: "assistant", content: JSON.stringify(raw) },
                 { role: "user", content: "上の構成は入力にあった次の内容を落としています: " + lost.join(" / ") + "\n入力に無いことは足さず、これらを本文・note・2 枚目のいずれかに載せた JSON を返してください。1 枚に収まらなければ slides を 2 枚にしてください。" },
               ]);
-              const r3 = await llm.chat({ messages: msgs3, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+              const r3 = await ask(msgs3);
               const raw3 = extractJson(r3.content);
               const third = shapeResponse(raw3, normalizeResponseSpec, maxN);
               const t3 = JSON.stringify(third.slides || third);
@@ -190,7 +198,7 @@ app.post("/api/generate", async (req, res) => {
                 { role: "assistant", content: JSON.stringify(raw) },
                 { role: "user", content: "上の構成は2枚に収めても文字を大きく縮めないと入らない密度です。内容を一切落とさず、章立て(sections)の JSON だけを返してください。入力に列挙されている論点(項目・領域・施策など)がある場合は、1 章に複数の論点を詰め込まず論点数に応じて章を分けてください(3〜8章。論点が8を超える場合も8章までにまとめてよいが、1章に複数論点を無理に押し込めるくらいなら章を増やす方を優先する)。各章の summary にはその章に入れる事実・数値をすべて含めてください。" },
               ]);
-              const rSec = await llm.chat({ messages: msgsSec, model: model || undefined, maxTokens: 4000, temperature: 0.2, jsonMode: true });
+              const rSec = await ask(msgsSec);
               const rawSec = extractJson(rSec.content);
               if (rawSec && Array.isArray(rawSec.sections) && rawSec.sections.length) {
                 raw = rawSec;
@@ -221,7 +229,7 @@ app.post("/api/generate", async (req, res) => {
     // 計測ログ: モデル・所要時間・トークン数(ベンチと本番の比較に使う)
     if (!useMock) {
       const u = meta.usage || {};
-      console.log(`[generate] ${meta.model} ${ms}ms in=${u.prompt_tokens || "?"} out=${u.completion_tokens || "?"} slides=${shaped.slides ? shaped.slides.length : 0}${shaped.sections ? " sections=" + shaped.sections.length : ""}`);
+      console.log(`[generate] ${meta.model} ${ms}ms x${meta.roundTrips || 1} in=${u.prompt_tokens || "?"} out=${u.completion_tokens || "?"} slides=${shaped.slides ? shaped.slides.length : 0}${shaped.sections ? " sections=" + shaped.sections.length : ""}`);
     }
     // 互換: spec = 1 枚目
     res.json({ ...shaped, spec: shaped.slides ? shaped.slides[0] : null, ms, ...meta });
