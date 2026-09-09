@@ -27,7 +27,8 @@ for (const width of [720, 960, 1280]) {
   assert.strictEqual(rules[0].y1, rules[1].y1);
   assert.strictEqual(rules[0].x2 - rules[0].x1, rules[1].x2 - rules[1].x1);
   assert.ok(!l.prims.some((p) => p.body && p.fill), "text panels have no arbitrary fills");
-  assert.ok(l.prims.filter((p) => p.body && p.text && !p.role).every((p) => p.valign === "middle"));
+  // 余りがあるパネルの本文は上に張り付けない(ど真ん中でも上詰めでもなく、余りを上 35% / 下 65% に配る)
+  assert.ok(l.prims.filter((p) => p.body && p.text && !p.role).every((p) => p.valign === "middle" || p.y > rules[0].y1 + 8), "panel body keeps a gap under the heading rule");
   assert.ok(l.fonts.head > l.fonts.body && l.fonts.body >= 14) // 本文の下限はテンプレの本文サイズ(密度優先。余白があるときだけ拡大する);
 }
 const short = norm({ panelCount: 1, body: { type: "sequence", steps: [

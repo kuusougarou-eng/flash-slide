@@ -1023,6 +1023,11 @@
     if (h == null || textHeight(spaced, w, fs) <= h) return spaced;
     return body.build({ marker, spacer: false });
   }
+  /** 版面が余っているときの縦位置。余りを上 35% / 下 65% に配る。
+   *  ど真ん中に置くとリード文との間が大きく空いて本文が浮き、上に詰めると下半分だけが空く */
+  function opticalTop(y, h, need) {
+    return y + Math.max(PAD / 2, (h - need) * 0.35);
+  }
   function cellBody(node) {
     if (Array.isArray(node.items) && node.items.length) return itemsBody(node.items);
     return { text: node.text || "", list: false, nested: false };
@@ -1124,11 +1129,22 @@
       c.prims.push(rect(r.x, r.y, r.w, r.h, { fill: P.fillLight }));
       const color = P.text;
       if (hasBody) {
-        const textNeed = textHeight(b.text, r.w - PAD * 2, FONT.body) + PAD * 2; // 見出し帯は本文が入る分だけ譲る
-        const hh = Math.max(FONT.head * FONT.lineHeight + 8, Math.min(r.h * 0.42, r.h - textNeed));
-        c.prims.push(textBox(r.x, r.y, r.w, hh, head, { fontSize: FONT.head, bold: true, color, align: "center", valign: "bottom", pad: 4, autofit: "none" }));
-        const fs = fitBody(c, b.text, r.w - PAD * 2, r.h - hh - PAD, FONT.body, 3, FONT.body);
-        c.prims.push(textBox(r.x, r.y + hh, r.w, r.h - hh, b.text, { fontSize: fs, color: P.textMuted, align: "center", valign: "top", pad: 4, bullets: false, gid: node._gid }));
+        // 横長の箱(縦に積んだ箱フロー)は、見出しと本文を左揃えにして 1 組で縦中央に置く。
+        // 横に長い箱で中央揃えにすると視線の始点が行ごとに動き、下だけ大きく空く
+        const wide = r.w > r.h * 2.2;
+        const fs = fitBody(c, b.text, r.w - PAD * 3, r.h - PAD * 2, FONT.body, 3, FONT.body);
+        if (wide) {
+          const hh = FONT.head * FONT.lineHeight + 4;
+          const th = textHeight(b.text, r.w - PAD * 3, fs);
+          const top = r.y + Math.max(PAD / 2, (r.h - hh - th) / 2);
+          c.prims.push(textBox(r.x + PAD, top, r.w - PAD * 2, hh, head, { fontSize: FONT.head, bold: true, color, align: "left", valign: "bottom", pad: 4, autofit: "none" }));
+          c.prims.push(textBox(r.x + PAD, top + hh, r.w - PAD * 2, th + 4, b.text, { fontSize: fs, color, align: "left", valign: "top", pad: 4, bullets: false, gid: node._gid }));
+        } else {
+          const textNeed = textHeight(b.text, r.w - PAD * 2, FONT.body) + PAD * 2; // 見出し帯は本文が入る分だけ譲る
+          const hh = Math.max(FONT.head * FONT.lineHeight + 8, Math.min(r.h * 0.42, r.h - textNeed));
+          c.prims.push(textBox(r.x, r.y, r.w, hh, head, { fontSize: FONT.head, bold: true, color, align: "center", valign: "bottom", pad: 4, autofit: "none" }));
+          c.prims.push(textBox(r.x, r.y + hh, r.w, r.h - hh, b.text, { fontSize: fs, color, align: "center", valign: "top", pad: 4, bullets: false, gid: node._gid }));
+        }
       } else {
         c.prims.push(textBox(r.x, r.y, r.w, r.h, head || b.text, { fontSize: FONT.head, bold: true, color, align: "center", valign: "middle", pad: 6, autofit: "none" }));
       }
@@ -1216,7 +1232,13 @@
     const bodyText = nestedText(b, bw, fs, bh - PAD * 2); // 記号と塊の空行は、実際の幅・文字サイズ・高さで決める
     const need = textHeight(bodyText, bw, fs, b.list ? 4 : 0) + PAD * 2;
     const roomyPanel = !fill && !node._inPanel && bh > need * 1.4;
-    const valign = roomyPanel ? "middle" : head ? "top" : fill ? "middle" : node.valign || "top";
+    if (roomyPanel) {
+      // 余りは上 35% / 下 65% に配る(ど真ん中だとリード文との間が空いて本文が浮く)
+      const top = opticalTop(y, bh, need);
+      c.prims.push(textBox(x, top, w, Math.max(need, y + bh - top), bodyText, { fontSize: fs, bold: !!node.bold, color: textColor, bullets: b.list, align, valign: "top", pad: padX, shrunk: fs < FONT.min, gid: node._gid }));
+      return;
+    }
+    const valign = head ? "top" : fill ? "middle" : node.valign || "top";
     c.prims.push(textBox(x, y, w, bh, bodyText, { fontSize: fs, bold: !!node.bold, color: textColor, bullets: b.list, align, valign, pad: padX, shrunk: fs < FONT.min, gid: node._gid }));
   };
 
@@ -1433,6 +1455,11 @@
       }
     }
     // 本文行
+    // 行の中に 2 行以上のセルがあるか(縦の揃えを行単位で決めるため。行見出しにも同じ判定を使う)
+    const rowTopOf = (rw) => (rw.cells || []).some((cl, j) => {
+      const tx = cellText(cl);
+      return tx && estimateLines(stripBold(tx), m.colWs[j] - m.cellPad * 2, m.fs) >= 2;
+    });
     m.rows.forEach((rw, i) => {
       const rh = m.rowHeights[i];
       const last = i === m.rows.length - 1;
@@ -1460,9 +1487,12 @@
           // 行名の箱は既定で薄い地。比較の主役が行の軸のときだけ rowHeadFill:"dark" で濃い地 + 白文字にする
           const rowHeadDark = node.rowHeadFill === "dark";
           if (node.rowHeadFill !== "none" && headText) c.prims.push(rect(x0, y + 2, m.rowHeadW - 4, rh - 4, { fill: rowHeadDark ? (rowHl ? P.accent : P.fillDark) : P.fillLight }));
-          c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: rowHeadDark ? P.textOnDark : P.text, align: "left", valign: "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
+          c.prims.push(textBox(x0, y, m.rowHeadW - 4, rh, headText, { fontSize: m.fs, bold: true, color: rowHeadDark ? P.textOnDark : P.text, align: "left", valign: rowTopOf(rw) ? "top" : "middle", pad: m.cellPad, autofit: "none", role: "matrixcell" }));
         }
       }
+      // 縦の揃えは行単位で決める。セルごとに決めると、同じ行なのに 1 行のセルだけ中央に落ちて頭がずれる。
+      // 行の中に 2 行以上のセルが 1 つでもあれば、その行は全部上揃えにする
+      const rowTop = rowTopOf(rw);
       for (let j = 0; j < m.ncols; j++) {
         const cell = (rw.cells || [])[j];
         const runs = parseRuns(cellText(cell));
@@ -1517,10 +1547,7 @@
           c.prims.push(textBox(cx, top + headH, cw, Math.max(listH, y + rh - top - headH), listText, Object.assign({}, cellOpt, { valign: "top", bullets: true })));
         } else {
           const text = na ? "—" : isList && marked ? lines.map((l) => l.replace(/^\s*[・•\-–]\s*/, "")).join("\n") : raw;
-          // 文字が 2 行以上あるセルは上揃え。縦中央にすると行ごとに文字の始まる高さがずれて、
-          // 横に読むときに視線が上下する(1 行だけのセルは中央の方が行の中で落ち着く)
-          const cellLines = estimateLines(stripBold(text), cw - cellPad * 2 - (isList ? BULLET_INDENT : 0), m.fs);
-          c.prims.push(textBox(cx, y, cw, rh, text, Object.assign({}, cellOpt, { valign: cellLines >= 2 ? "top" : "middle", bullets: isList })));
+          c.prims.push(textBox(cx, y, cw, rh, text, Object.assign({}, cellOpt, { valign: rowTop ? "top" : "middle", bullets: isList })));
         }
         if (node.axes && j > 0) c.prims.push(line(cx, y + 2, cx, y + rh - 2, P.lineLight, RULE_THIN)); // 4 象限などは列の間にも薄い縦罫
       }
@@ -2106,7 +2133,8 @@
     const fs = fitBody(c, body.text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, body.list);
     const txt = nestedText(body, tw, fs, r.h - PAD * 2); // 記号と塊の空行は、実際の幅・文字サイズ・高さで決める
     const need = textHeight(txt, tw, fs) + PAD * 2;
-    c.prims.push(textBox(r.x, r.y, r.w, r.h, txt, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min }));
+    const top = opticalTop(r.y, r.h, need);
+    c.prims.push(textBox(r.x, top, r.w, Math.max(need, r.y + r.h - top), txt, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "top", pad: PAD, gid: node._gid, shrunk: fs < FONT.min }));
     if (need > r.h) c.warnings.push("nested list overflow");
   }
   function unnumberHead(value) {
