@@ -708,15 +708,29 @@
           // API は例外を出さないので、箱を残して PNG で目視する(確認後は probeclean で消す)
           await PowerPoint.run(async (ctx) => {
             const slide = ctx.presentation.slides.getItemAt(Number(t.i) || 0);
+            const bg = slide.shapes.addGeometricShape("Rectangle", { left: 0, top: 0, width: 960, height: 540 });
+            bg.name = "FS_probebg"; // 参照スライドの中身に重ならないよう白で覆う(probeclean で消す)
+            bg.fill.setSolidColor("FFFFFF");
+            bg.lineFormat.visible = false;
             const text = "親項目 1\n子項目 1-1\n子項目 1-2\n親項目 2";
-            const box = slide.shapes.addTextBox(text, { left: 60, top: 120, width: 500, height: 200 });
-            box.name = "FS_probeindent";
-            const tr = box.textFrame.textRange;
-            tr.font.size = 18;
-            tr.paragraphFormat.bulletFormat.visible = true;
-            const from = "親項目 1\n".length;
-            const len = "子項目 1-1\n子項目 1-2".length;
-            tr.getSubstring(from, len).paragraphFormat.indentLevel = 1; // 2〜3 段落目だけ 1 段下げたい
+            const mk = (left, label) => {
+              const box = slide.shapes.addTextBox(label + "\n" + text, { left, top: 90, width: 290, height: 220 });
+              box.name = "FS_probeindent";
+              box.textFrame.textRange.font.size = 14;
+              box.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+              return box;
+            };
+            // A: 対照(何もしない) / B: シェイプ全体を indentLevel 1 / C: 3〜4 段落目だけ indentLevel 1
+            // D: タブ文字で字下げ(段落は全部 level 0 のまま)
+            mk(20, "A 対照");
+            mk(325, "B 全体 lv1").textFrame.textRange.paragraphFormat.indentLevel = 1;
+            const cBox = mk(630, "C 部分 lv1");
+            const cText = "C 部分 lv1\n" + text;
+            cBox.textFrame.textRange.getSubstring(cText.indexOf("子項目 1-1"), "子項目 1-1\n子項目 1-2".length).paragraphFormat.indentLevel = 1;
+            const dBox = slide.shapes.addTextBox("D タブ字下げ\n親項目 1\n\t子項目 1-1\n\t子項目 1-2\n親項目 2", { left: 20, top: 330, width: 290, height: 200 });
+            dBox.name = "FS_probeindent";
+            dBox.textFrame.textRange.font.size = 14;
+            dBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
             await ctx.sync();
           });
           fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probeindent: "drawn" }) }).catch(() => {});
