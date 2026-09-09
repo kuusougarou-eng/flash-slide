@@ -463,8 +463,17 @@
     // 入口の閾値は 0.85。0.70 だと、塊を離す空行の分だけ充填率が上がったスライドで拡大が止まり、
     // 本文が 14pt のまま余白の多い版面になっていた。溢れるかどうかは下のループが実際に描いて確かめる
     if (!pass.bad && pass.fill < 0.85 && !options.noGrow) {
-      for (let b = 2; b <= 6; b += 2) {
-        if (FONT.body + b > 20) break; // 上限 20pt(24pt は疎なスライドで幼く見える)
+      // 上限は 20pt。ただし本文が数行しかないスライド(短い入力)は 20pt でも版面の 1/3 しか埋まらないので、
+      // 26pt まで上げてよい。「24pt は幼く見える」のは文章の多いスライドを無理に大きくしたときの話で、
+      // 3〜5 行の言い切りは大きい方が読みやすい
+      // pass.prims にはまだ body フラグが付いていない(付けるのは採用が決まってから)。全て本文の部品
+      const bodyLines = pass.prims.filter((p) => p.text).reduce((n, p) => n + estimateLines(p.text, p.w - (p.pad || 0) * 2, p.fontSize || FONT.body), 0);
+      // テンプレがあるときは上げない(テンプレの文字階層に従う)。図・箱・表のあるスライドも上げない
+      // (箱の高さが中身に追随して伸び、版面の割り付けが崩れる)。文字だけの疎なスライドに限る
+      const plain = !pass.prims.some((p) => p.kind === "image" || p.kind === "table" || (p.shape && p.shape !== "rect") || (p.fill && p.fill !== "none"));
+      const cap = !prof && plain && bodyLines <= 6 ? 26 : 20;
+      for (let b = 2; b <= 12; b += 2) {
+        if (FONT.body + b > cap) break;
         const next = renderBodyPass(b);
         if (next.bad || (!spec.compositionVersion && next.fill > 0.98)) break;
         pass = next;
@@ -484,7 +493,8 @@
     const fonts = pass.fonts;
     if (pass.bump) fonts.grown = pass.bump;
     applyFontProfile(null); // 既定に戻す(次の呼び出しに引きずらない)
-    return { width: W, height: H, prims, warnings, header, bodyRect, fonts };
+    // fill は版面のうち実際に文字・図形が見えている縦の割合。疎すぎ/密すぎの判定に使う(品質ゲート)
+    return { width: W, height: H, prims, warnings, header, bodyRect, fonts, fill: pass.fill };
   }
 
   /** 同じ容器(rows / cols)に属する本文セルは同じ文字サイズに揃える。縮小方向なので溢れない */
@@ -3286,5 +3296,125 @@
   }
 
   const VERSION = "5.0";
-  return { layout, normalizeSpec, normalizeGeneratedSpec, compositionKey, parseRuns, estimateLines, naturalHeight, tint, cleanTitle, DEFAULT_PALETTE, FONT: BASE_FONT, STYLE, LEAF_TYPES, VERSION };
+  // =====================================================================
+  //  1 枚に収まらないときの分割(決定論)
+  // =====================================================================
+  /** 読める大きさで収まっているか。1 回の推論で返ってきた spec を、聞き直さずに判定する */
+  function fitsReadably(spec, options) {
+    const o = Object.assign({ width: 960, height: 540, minFont: 14, maxFill: 0.99 }, options || {});
+    let lay;
+    try {
+      lay = layout(spec, { width: o.width, height: o.height, noGrow: false });
+    } catch (_) {
+      return { ok: false, reason: "layout failed" };
+    }
+    const overflow = lay.warnings.find((w) => /content dropped|overflow|too small|too wide/.test(w));
+    if (overflow) return { ok: false, reason: overflow, lay };
+    const noteRoles = ["footnote", "note", "caption", "kicker", "barlabel", "axis"];
+    const cellRoles = ["matrixcell", "tablecell", "orglabel", "ganttlabel"];
+    for (const p of lay.prims) {
+      if (!p.text || !p.fontSize || p.kind !== "rect" || noteRoles.includes(p.role)) continue;
+      const floor = cellRoles.includes(p.role) ? Math.max(12, o.minFont - 2) : o.minFont;
+      if (p.fontSize < floor) return { ok: false, reason: "font " + p.fontSize + "pt", lay };
+    }
+    // ネイティブ表は版面を割り付けて埋めるのが正しい姿なので、詰まりすぎの判定から外す
+    const hasNativeTable = lay.prims.some((p) => p.kind === "table");
+    if (!hasNativeTable && lay.fill > o.maxFill) return { ok: false, reason: "fill " + lay.fill.toFixed(2), lay };
+    return { ok: true, lay };
+  }
+
+  const CONTINUED = "(続き)";
+  function clone(v) {
+    return JSON.parse(JSON.stringify(v));
+  }
+  /** 配列を前半・後半に割る(前半を 1 つ多く取る) */
+  function halve(arr) {
+    const n = Math.ceil(arr.length / 2);
+    return [arr.slice(0, n), arr.slice(n)];
+  }
+  /**
+   * 1 枚に収まらない spec を 2 枚に割る。LLM に聞き直さず、構造をそのまま前後に分ける。
+   *  - パネル(cols): 各パネルの項目を前半・後半に割り、見出しは両方に残す(比較の軸を崩さない)
+   *  - 1 パネルの列挙(cell.items): 項目を前半・後半に割る
+   *  - 格子(table / ntable): 行を前半・後半に割り、列見出しは両方に残す
+   *  - 図・ガント・体制図・ステップ: 割らない(1 つの絵なので割ると意味が壊れる)→ null
+   * 2 枚目の title は同じ結論に「(続き)」を付ける。lead は 1 枚目にだけ置く(同じ根拠を繰り返さない)。
+   */
+  function splitSpec(spec) {
+    if (!spec || typeof spec !== "object") return null;
+    const a = clone(spec), b = clone(spec);
+    const body = a.body || {};
+    const bodyB = b.body || {};
+    let split = false;
+    const enough = (xs) => Array.isArray(xs) && xs.length >= 2;
+
+    // パネル(あるいは格子)の中身を前後に割る。項目の列挙でも、格子の行でも同じように扱う
+    const halveKid = (k, kb) => {
+      if (enough(k.items)) {
+        const [x, y] = halve(k.items);
+        k.items = x;
+        kb.items = y;
+        return true;
+      }
+      if (enough(k.rows)) {
+        const [x, y] = halve(k.rows);
+        k.rows = x;
+        kb.rows = y;
+        return true;
+      }
+      return false;
+    };
+    const hasContent = (k) => (k.items && k.items.length) || (k.rows && k.rows.length);
+
+    if (Array.isArray(body.cols) && body.cols.some((k) => enough(k.items) || enough(k.rows))) {
+      // 横並びのパネル: 各パネルの中身を割る。割れないパネル(図など)は 1 枚目に残す
+      body.cols.forEach((k, i) => {
+        if (!halveKid(k, bodyB.cols[i])) {
+          bodyB.cols[i].items = [];
+          bodyB.cols[i].rows = [];
+        }
+      });
+      // 2 枚目が空になったパネルは落とす(見出しだけの列を残さない)
+      bodyB.cols = bodyB.cols.filter(hasContent);
+      split = bodyB.cols.length > 0;
+    } else if (enough(body.items)) {
+      const [x, y] = halve(body.items);
+      body.items = x;
+      bodyB.items = y;
+      split = true;
+    } else if (enough(body.rows)) {
+      const [x, y] = halve(body.rows);
+      body.rows = x;
+      bodyB.rows = y;
+      split = true;
+    }
+    if (!split) return null;
+
+    b.title = String(a.title || "").trim();
+    if (b.title && b.title.indexOf(CONTINUED) < 0) b.title = b.title + " " + CONTINUED;
+    b.lead = "";
+    a.footnote = "";
+    a.note = a.note || "";
+    b.note = b.note || "";
+    return [a, b];
+  }
+  /**
+   * 収まるまで割る。1 回の推論で返ってきた内容を落とさずに読める大きさで載せるための最後の手段で、
+   * LLM には聞き直さない。割れない構成(図・ガント)に当たったらそこで止める。
+   * max を超えては割らない(際限なく増やさない)。
+   */
+  function splitToFit(spec, max) {
+    const cap = Math.max(1, max || 2);
+    let list = [spec];
+    for (let guard = 0; guard < 8 && list.length < cap; guard++) {
+      const i = list.findIndex((s) => !fitsReadably(s).ok);
+      if (i < 0) break;
+      const parts = splitSpec(list[i]);
+      if (!parts) break;
+      list.splice(i, 1, parts[0], parts[1]);
+    }
+    return list;
+  }
+
+  return { layout, splitSpec, splitToFit, fitsReadably, normalizeSpec, normalizeGeneratedSpec, compositionKey, parseRuns, estimateLines, naturalHeight, tint, cleanTitle, DEFAULT_PALETTE, FONT: BASE_FONT, STYLE, LEAF_TYPES, VERSION };
 });
