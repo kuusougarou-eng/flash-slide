@@ -182,19 +182,10 @@
   function fitBody(c, text, w, h, pref, paraGap, max, list) {
     let fs = pref || FONT.body;
     while (fs > FONT.floor && textHeight(text, w, fs, paraGap) > h) fs -= 1;
-    if (list) {
-      // 箇条書きは項目ごとに1行へ収まる大きさを優先する。Office.js の bulletFormat には
-      // ぶら下げインデント(2行目以降を1行目の文字位置に揃える)の設定が無く、折り返すと
-      // 2行目が点の位置まで戻って見える(実機確認済み)。どんな長さの文章でも floor まで
-      // 縮めれば1行にはなるので、縮小は小幅(2pt まで)に限定する。それで足りない項目が
-      // あれば諦めて高さ基準の fs のまま(折り返しを受け入れる。読みやすさを字下げより優先)
-      const items = stripBold(text).split(BREAK);
-      const oneLine = (f) => items.every((it) => estimateLines(it, w, f) <= 1);
-      const limit = Math.max(FONT.floor, fs - 2);
-      let f = fs;
-      while (f > limit && !oneLine(f)) f -= 1;
-      if (oneLine(f)) fs = f;
-    }
+    // 箇条書きを「1 項目 1 行」に収めるための縮小はしない。ぶら下げインデントが効かないという前提で
+    // 入れていたが、実機で左揃えにして確かめたところ、折り返した 2 行目は点の位置に戻らず
+    // 1 行目の文字位置に揃う(hint:"probeindent" の G)。折り返しは受け入れてよく、
+    // 縮小はむしろ版面全体の文字を小さいまま止めていた。
     if (fs < FONT.min) c.warnings.push("shrunk to " + fs + "pt: " + stripBold(text).slice(0, 18));
     // 部品ごとに拡大しない(隣の部品と文字サイズが揃わなくなる)。版面が余るときの拡大は layout() が全体を一括で行う
     return fs;

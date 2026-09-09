@@ -718,6 +718,7 @@
               box.name = "FS_probeindent";
               box.textFrame.textRange.font.size = 14;
               box.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+              box.textFrame.textRange.paragraphFormat.horizontalAlignment = "Left";
               return box;
             };
             // A: 対照(何もしない) / B: シェイプ全体を indentLevel 1 / C: 3〜4 段落目だけ indentLevel 1
@@ -727,21 +728,30 @@
             const cBox = mk(630, "C 部分 lv1");
             const cText = "C 部分 lv1\n" + text;
             cBox.textFrame.textRange.getSubstring(cText.indexOf("子項目 1-1"), "子項目 1-1\n子項目 1-2".length).paragraphFormat.indentLevel = 1;
-            const dBox = slide.shapes.addTextBox("D タブ字下げ\n親項目 1\n\t子項目 1-1\n\t子項目 1-2\n親項目 2", { left: 20, top: 330, width: 290, height: 200 });
+            const dBox = slide.shapes.addTextBox("D タブ字下げ\n親項目 1\n\t子項目 1-1\n\t子項目 1-2\n親項目 2", { left: 20, top: 320, width: 290, height: 120 });
             dBox.name = "FS_probeindent";
             dBox.textFrame.textRange.font.size = 14;
             dBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+            dBox.textFrame.textRange.paragraphFormat.horizontalAlignment = "Left";
             // E: ソフト改行(垂直タブ = Shift+Enter 相当)。段落が変わらないなら子の行に点が付かず、
             //    ぶら下げ位置(親の文字の左端)に揃うはず
-            const eBox = slide.shapes.addTextBox("E ソフト改行\n親項目 1子項目 1-1子項目 1-2\n親項目 2", { left: 325, top: 330, width: 290, height: 200 });
+            const eBox = slide.shapes.addTextBox("E ソフト改行\n親項目 1子項目 1-1子項目 1-2\n親項目 2", { left: 325, top: 320, width: 290, height: 120 });
             eBox.name = "FS_probeindent";
             eBox.textFrame.textRange.font.size = 14;
             eBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+            eBox.textFrame.textRange.paragraphFormat.horizontalAlignment = "Left";
             // F: ソフト改行 + 復帰(CR)。実装によってはこちらが段落内改行になる
-            const fBox = slide.shapes.addTextBox("F CR 改行\n親項目 1\r子項目 1-1\r子項目 1-2\n親項目 2", { left: 630, top: 330, width: 290, height: 200 });
+            const fBox = slide.shapes.addTextBox("F CR 改行\n親項目 1\r子項目 1-1\r子項目 1-2\n親項目 2", { left: 630, top: 320, width: 290, height: 120 });
             fBox.name = "FS_probeindent";
             fBox.textFrame.textRange.font.size = 14;
             fBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+            fBox.textFrame.textRange.paragraphFormat.horizontalAlignment = "Left";
+            // G: 折り返しの 2 行目がどこに揃うか(点の位置に戻るのか、文字の位置に揃うのか)
+            const gBox = slide.shapes.addTextBox("G 折り返し\n主要部材の単価が前年比 +14% で、仕入先 182 社に分散した結果、上位 10 社で購買額の 38% にとどまっている\n短い項目", { left: 20, top: 450, width: 430, height: 85 });
+            gBox.name = "FS_probeindent";
+            gBox.textFrame.textRange.font.size = 14;
+            gBox.textFrame.textRange.paragraphFormat.bulletFormat.visible = true;
+            gBox.textFrame.textRange.paragraphFormat.horizontalAlignment = "Left";
             await ctx.sync();
           });
           fetch("/api/debug/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probeindent: "drawn" }) }).catch(() => {});
