@@ -272,7 +272,7 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const longChild = "主要部材の単価が前年比 +14% で、仕入先 182 社に分散した結果、上位 10 社で購買額の 38% にとどまっている";
   const wrapCase = SlideLayout.layout(SlideLayout.normalizeSpec({ panelCount: 1, title: "T", body: { type: "cell", items: ["**親 A**", [longChild, longChild]] } }), { width: 960, height: 540 });
   const widePrim = wrapCase.prims.find((p) => /\v/.test(p.text || ""));
-  assert.ok(widePrim && /\v– /.test(widePrim.text), "children that wrap get a marker so the boundary stays visible");
+  assert.ok(widePrim && /\v　– /.test(widePrim.text), "children that wrap get a marker so the boundary stays visible");
   // 兄弟列の行揃え: 4 列の見出し(1 段目)の高さ・下端が揃う
   const e = SlideLayout.layout(SlideLayout.normalizeSpec(SAMPLES.enumerate), { width: 960, height: 540 });
   const rules = e.prims.filter((p) => p.kind === "line" && p.weight === SlideLayout.STYLE.rule.thick && p.body);

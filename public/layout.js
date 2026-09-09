@@ -460,7 +460,9 @@
     }
     // 版面充填: 文字量が版面に対して少ないときは本文を段階的に大きくして埋める(+2pt ずつ、本文 20pt まで)。溢れたら手前の段に戻す
     // 拡大するのは版面が余っているときだけ(composition でも同じ)。密なスライドを無条件に 20pt へ広げない
-    if (!pass.bad && pass.fill < 0.7 && !options.noGrow) {
+    // 入口の閾値は 0.85。0.70 だと、塊を離す空行の分だけ充填率が上がったスライドで拡大が止まり、
+    // 本文が 14pt のまま余白の多い版面になっていた。溢れるかどうかは下のループが実際に描いて確かめる
+    if (!pass.bad && pass.fill < 0.85 && !options.noGrow) {
       for (let b = 2; b <= 6; b += 2) {
         if (FONT.body + b > 20) break; // 上限 20pt(24pt は疎なスライドで幼く見える)
         const next = renderBodyPass(b);
@@ -966,34 +968,43 @@
     // 段落を 1 段下げる手段は無い(indentLevel は何も起きず、タブ文字は点だけ左端に置き去りになる)ので、
     // 階層はこの形でしか作れない。点そのものは PowerPoint 本来の箇条書きに描かせる
     const lines = [];
-    const marked = [];
+    // 子は 1 段深く字下げする。子を持つ塊の後ろには空のソフト改行を 1 本入れて塊を離す
+    // (空段落ではなく空のソフト改行なので点が付かない。段落間隔の API が無くても区切りが作れる)。
+    // 記号と空行を入れるかは幅・文字サイズ・高さが決まってから決めるので、組み立て方だけ返す
+    const INDENT = "　";
+    const groups = []; // { head, children: [] }
     const childLines = [];
     for (const it of arr) {
       if (Array.isArray(it)) {
-        if (!lines.length) {
-          lines.push("");
-          marked.push("");
-        }
+        if (!groups.length) groups.push({ head: "", children: [] });
         for (const sub of it) {
           const t = itemToText(sub);
           childLines.push(t);
-          lines[lines.length - 1] += "\v" + t;
-          marked[marked.length - 1] += "\v– " + t;
+          groups[groups.length - 1].children.push(t);
         }
-      } else {
-        const t = itemToText(it);
-        lines.push(t);
-        marked.push(t);
-      }
+      } else groups.push({ head: itemToText(it), children: [] });
     }
-    return { text: lines.join("\n"), marked: marked.join("\n"), childLines, list: true, nested: true };
+    const build = (opt) =>
+      groups
+        .map((g, i) => {
+          let line = g.head;
+          for (const t of g.children) line += "\v" + INDENT + (opt.marker ? "– " : "") + t;
+          if (opt.spacer && g.children.length && i < groups.length - 1) line += "\v";
+          return line;
+        })
+        .join("\n");
+    return { text: build({ marker: false, spacer: true }), build, childLines, list: true, nested: true };
   }
-  /** 入れ子の子行に「–」を付けるかを、幅と文字サイズが決まってから決める。
-   *  子が 1 行に収まるなら記号なし(字下げだけで階層が読める。記号を足すと騒がしい)。
-   *  折り返す子があるなら記号を付ける(付けないと子と子の切れ目が消えて 1 つの文に見える) */
-  function nestedText(body, w, fs) {
-    if (!body || !body.nested || !body.marked) return body ? body.text : "";
-    return (body.childLines || []).some((l) => estimateLines(l, w, fs) > 1) ? body.marked : body.text;
+  /** 入れ子の見せ方を、幅・文字サイズ・高さが決まってから決める。
+   *  - 記号「–」: 子が 1 行に収まるなら付けない(字下げだけで階層が読める。付けると騒がしい)。
+   *    折り返す子があるときだけ付ける(付けないと子と子の切れ目が消えて 1 つの文に見える)。
+   *  - 塊を離す空行: 入るときだけ入れる。入らないなら捨てる(区切りより内容が入ることが先) */
+  function nestedText(body, w, fs, h) {
+    if (!body || !body.nested || !body.build) return body ? body.text : "";
+    const marker = (body.childLines || []).some((l) => estimateLines(l, w, fs) > 1);
+    const spaced = body.build({ marker, spacer: true });
+    if (h == null || textHeight(spaced, w, fs) <= h) return spaced;
+    return body.build({ marker, spacer: false });
   }
   function cellBody(node) {
     if (Array.isArray(node.items) && node.items.length) return itemsBody(node.items);
@@ -1185,7 +1196,7 @@
     const align = node.align || "left"; // 本文は常に左。右寄せは格子の数値列だけに限る(全体の平仄)
     // 下線パネルの本文は、枠に対して文字が少ないときは縦中央に置く(上に張り付いて下が空く密度の偏りをなくす)
     const bw = w - padX * 2 - (b.list ? BULLET_INDENT : 0);
-    const bodyText = nestedText(b, bw, fs); // 子が折り返すときだけ「–」を付ける
+    const bodyText = nestedText(b, bw, fs, bh - PAD * 2); // 記号と塊の空行は、実際の幅・文字サイズ・高さで決める
     const need = textHeight(bodyText, bw, fs, b.list ? 4 : 0) + PAD * 2;
     const roomyPanel = !fill && !node._inPanel && bh > need * 1.4;
     const valign = roomyPanel ? "middle" : head ? "top" : fill ? "middle" : node.valign || "top";
@@ -2064,7 +2075,7 @@
       const body = cellBody(node); // 入れ子は子をソフト改行で親の段落に入れて 1 シェイプに畳む
       const tw = r.w - PAD * 2 - (body.list ? BULLET_INDENT : 0);
       const fs = fitBody(c, body.text, tw, r.h - PAD * 2, Math.min(FONT.large, FONT.body + 4), 0, undefined, body.list);
-      const txt = nestedText(body, tw, fs); // 子が折り返すときだけ「–」を付ける
+      const txt = nestedText(body, tw, fs, r.h - PAD * 2); // 記号と塊の空行は、実際の幅・文字サイズ・高さで決める
       const need = textHeight(txt, tw, fs) + PAD * 2;
       c.prims.push(
         textBox(r.x, r.y, r.w, r.h, txt, { fontSize: fs, color: c.P.text, bullets: body.list, valign: "middle", pad: PAD, gid: node._gid, shrunk: fs < FONT.min })
