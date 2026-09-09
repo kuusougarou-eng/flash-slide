@@ -3347,7 +3347,12 @@
       if (n.rowHeadFill === "none" || n.rowHeadFill === "dark") out.rowHeadFill = n.rowHeadFill;
       if (Number.isFinite(Number(n.numberFrom)) && Number(n.numberFrom) > 1) out.numberFrom = Number(n.numberFrom); // 分割した 2 枚目は番号を続きから
       if (n.numbered === true) out.numbered = true;
-      if (n.headShape === "chevron" || n.headShape === "chevrons") out.headShape = "chevron";
+      // 矢羽は工程の進行にだけ使う。行見出しが状態の列挙(課題・対応・予定・進捗 など)なら長方形に落とす
+      // (実機の採点で、定例報告の「課題 / 対応 / 来週の予定」が矢羽で描かれていた)
+      const statusHeads = /^(課題|対応|リスク|実績|進捗|結果|所感|今週|来週)|予定$/; // 「現状把握」のような工程名は含めない
+      const heads = (Array.isArray(n.rows) ? n.rows : []).map((r) => stripBold(String((r && r.head) || "")));
+      const looksLikeStatus = heads.length > 0 && heads.some((h) => statusHeads.test(h));
+      if ((n.headShape === "chevron" || n.headShape === "chevrons") && !looksLikeStatus) out.headShape = "chevron";
       if (Array.isArray(n.colGroups) && n.colGroups.length) out.colGroups = n.colGroups.map((g) => ({ text: str(g.text || g.head), span: Math.max(1, Number(g.span) || 1) }));
       if (Array.isArray(n.rowGroups) && n.rowGroups.length) out.rowGroups = n.rowGroups.map((g) => ({ text: str(g.text || g.head), span: Math.max(1, Number(g.span) || 1) }));
       // 軸ラベル(axes)は 2×2 の格子にだけ意味がある。行や列が 2 でない格子に付いてきたら外す(回転ラベルが行名に重なる)

@@ -301,6 +301,12 @@ for (const [name, raw] of Object.entries(SAMPLES)) {
   const grid = SlideLayout.normalizeSpec({ panelCount: 1, compositionVersion: 1, title: "t", body: { type: "table", colHeaders: ["A", "B"], rows: [{ head: "甲", cells: ["1", "2"] }, { head: "乙", cells: ["3", "4"] }, { head: "丙", cells: ["5", "6"] }] } });
   assert.ok(SlideLayout.fitsReadably(grid).ok, "a small shape grid is not rejected for filling the body");
 
+  // 矢羽は工程の進行にだけ。状態の列挙(課題 / 対応 / 予定)には使わない
+  const status = SlideLayout.normalizeSpec({ panelCount: 1, compositionVersion: 1, title: "棚卸しは順調", body: { type: "table", headShape: "chevron", numbered: true, colHeaders: [], rows: [{ head: "棚卸し", cells: ["860 件"] }, { head: "課題", cells: ["仕様書 18 本欠落"] }, { head: "対応", cells: ["2 名追加"] }, { head: "来週の予定", cells: ["全件完了"] }] } });
+  assert.notStrictEqual(status.body.headShape, "chevron", "status rows are not drawn as chevrons");
+  const process = SlideLayout.normalizeSpec({ panelCount: 1, compositionVersion: 1, title: "4 段で移行する", body: { type: "table", headShape: "chevron", numbered: true, colHeaders: [], rows: [{ head: "現状把握", cells: ["棚卸し"] }, { head: "設計", cells: ["方式"] }, { head: "移行", cells: ["切替"] }, { head: "停止", cells: ["解約"] }] } });
+  assert.strictEqual(process.body.headShape, "chevron", "process rows keep chevrons");
+
   // 列方向の矢羽: 行見出しが無く headShape:"chevron" なら、列見出しが左→右の矢羽になる
   const colChev = SlideLayout.layout(SlideLayout.normalizeSpec({ title: "移行は 4 段階で進める", body: { type: "table", headShape: "chevron", colHeaders: ["現状把握", "参照系移行", "更新系移行", "旧環境停止"], rows: [{ cells: ["棚卸し", "BI 38 本", "バッチ 64 本", "解約"] }, { cells: ["可視化", "並行稼働", "リハーサル", "手順更新"] }] } }), { width: 960, height: 540 });
   const chevShapes = colChev.prims.filter((p) => p.shape === "homePlate");
